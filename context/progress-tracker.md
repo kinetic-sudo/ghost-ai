@@ -45,5 +45,4 @@ Update this file whenever the current phase, active feature, or implementation s
   - `components/editor/editor-navbar.tsx` — fixed `h-12` navbar with left/center/right sections; sidebar toggle uses `PanelLeftOpen` / `PanelLeftClose`.
   - `components/editor/project-sidebar.tsx` — fixed overlay (`z-40`, slides from left, does not push content); `isOpen` prop; Projects header with close button; My Projects / Shared tabs with empty placeholders; full-width New Project button.
   - `components/editor/editor-dialog.tsx` — dialog shell with title, optional description, optional footer actions; styled with `bg-elevated`, `border-surface-border`, `rounded-3xl` tokens. No concrete dialog instances wired yet.
-  - `components/editor/editor-layout.tsx` — full-viewport shell composing navbar + project sidebar with shared open state; used by `app/(editor)/layout.tsx`.
   - Build and lint pass.
