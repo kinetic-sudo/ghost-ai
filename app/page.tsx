@@ -1,9 +1,7 @@
-import Image from "next/image";
-
 export default function Home() {
   return (
-    <div>
-      <h1>Hello World</h1>
-    </div>
+    <main className="flex min-h-screen items-center justify-center">
+      <h1 className="text-2xl font-semibold">Ghost AI</h1>
+    </main>
   );
 }
