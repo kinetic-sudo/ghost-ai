@@ -133,6 +133,18 @@
   --sidebar-accent-foreground: var(--text-primary);
   --sidebar-border: var(--border-default);
   --sidebar-ring: var(--accent-primary);
+
+  --clerk-color-primary: var(--accent-primary);
+  --clerk-color-primary-foreground: var(--bg-base);
+  --clerk-color-foreground: var(--text-primary);
+  --clerk-color-muted-foreground: var(--text-muted);
+  --clerk-color-background: var(--bg-surface);
+  --clerk-color-input: var(--bg-subtle);
+  --clerk-color-input-foreground: var(--text-primary);
+  --clerk-color-border: var(--border-default);
+  --clerk-color-ring: var(--accent-primary);
+  --clerk-color-muted: var(--bg-subtle);
+  --clerk-border-radius: var(--radius);
 }
 
 .dark {
