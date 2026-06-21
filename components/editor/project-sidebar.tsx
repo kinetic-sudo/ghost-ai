@@ -51,7 +51,7 @@ export function ProjectSidebar({
         defaultValue="my-projects"
         className="flex min-h-0 flex-1 flex-col gap-0"
       >
-        <TabsList className="mx-4 mt-3 w-auto shrink-0 self-start">
+        <TabsList className="mx-4 mt-3 rounded-lg shrink-0 self-start w-[285px]">
           <TabsTrigger value="my-projects">My Projects</TabsTrigger>
           <TabsTrigger value="shared">Shared</TabsTrigger>
         </TabsList>
