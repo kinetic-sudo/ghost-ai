@@ -8,12 +8,13 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Editor chrome complete; ready for canvas workspace and project routes.
+- Auth wired; editor shell ready for canvas workspace and project routes.
 
 ## Completed
 
 - `01-design-system` — shadcn/ui configured, only dark-theme tokens in `globals.css`, `lib/utils.ts` with `cn()`, lucide-react installed, UI primitives added (Button, Card, Dialog, Input, Tabs, Textarea, ScrollArea).
-- `02-editor` — `EditorNavbar` (fixed top bar with sidebar toggle), `ProjectSidebar` (floating overlay with My Projects / Shared tabs and New Project button), `EditorDialog` (reusable title / description / footer pattern using design tokens).
+- `02-editor` — `EditorNavbar` (fixed top bar with sidebar toggle), `ProjectSidebar` (floating overlay with My Projects / Shared tabs and New Project button), `EditorDialog` (reusable title / description / footer pattern using design tokens), `EditorLayout` (navbar + sidebar shell).
+- `03-auth` — Clerk provider with `dark` theme and CSS variable overrides, sign-in / sign-up pages with two-panel auth layout, `proxy.ts` route protection, root redirects, `UserButton` in editor navbar.
 
 ## In Progress
 
@@ -29,7 +30,8 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Architecture Decisions
 
-- Add decisions that affect the system design or data model.
+- Route protection uses protected-first `proxy.ts`: only `NEXT_PUBLIC_CLERK_SIGN_IN_URL` and `NEXT_PUBLIC_CLERK_SIGN_UP_URL` paths are public; all other routes require authentication.
+- Editor workspace lives at `/editor`; `/` redirects authenticated users to `/editor` and unauthenticated users to `/sign-in`.
 
 ## Session Notes
 
@@ -46,3 +48,9 @@ Update this file whenever the current phase, active feature, or implementation s
   - `components/editor/project-sidebar.tsx` — fixed overlay (`z-40`, slides from left, does not push content); `isOpen` prop; Projects header with close button; My Projects / Shared tabs with empty placeholders; full-width New Project button.
   - `components/editor/editor-dialog.tsx` — dialog shell with title, optional description, optional footer actions; styled with `bg-elevated`, `border-surface-border`, `rounded-3xl` tokens. No concrete dialog instances wired yet.
   - Build and lint pass.
+- **2025-06-21 — Auth (`03-auth`)**
+  - Installed `@clerk/ui`; `lib/clerk-appearance.ts` applies Clerk `dark` theme with Ghost CSS variable overrides (no hardcoded colors).
+  - `proxy.ts` at project root protects all routes except sign-in / sign-up paths from Clerk env vars.
+  - `app/(auth)/sign-in` and `app/(auth)/sign-up` — two-panel layout on large screens (branding left, Clerk form right); form only on small screens.
+  - `ClerkProvider` wraps root layout; `UserButton` added to editor navbar right section.
+  - Editor moved to `/editor`; `/` redirects by auth state.
