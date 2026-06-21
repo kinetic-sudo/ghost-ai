@@ -13,6 +13,8 @@ const clerkVariables = {
   colorMuted: "var(--bg-subtle)",
   colorNeutral: "var(--text-primary)",
   borderRadius: "var(--radius)",
+  fontFamily: "var(--font-sans)",
+  fontFamilyButtons: "var(--font-sans)",
 };
 
 const clerkElements = {
