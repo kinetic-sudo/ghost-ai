@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProjectDialogs } from "@/hooks/use-project-dialogs";
 import { MOCK_PROJECTS, type Project } from "@/lib/mock-projects";
+import { useProjectDialogsContext } from "./project-dialog-context";
 import {
   CreateProjectDialog,
   DeleteProjectDialog,
@@ -90,11 +91,11 @@ function EmptyProjectsPlaceholder() {
 // ---------------------------------------------------------------------------
 
 export function ProjectSidebar({
-  dialogs,
   isOpen,
   onClose,
   className,
 }: ProjectSidebarProps) {
+  const dialogs = useProjectDialogsContext();
   const ownedProjects = dialogs.ownedProjects;
   const sharedProjects = dialogs.sharedProjects
 

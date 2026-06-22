@@ -5,12 +5,14 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreateProjectDialog } from "@/components/editor/project-dialogs";
 import { useProjectDialogs } from "@/hooks/use-project-dialogs";
+import { ProjectDialogsProvider } from "@/components/editor/project-dialog-context";
+import { useProjectDialogsContext } from "@/components/editor/project-dialog-context";
 
-interface EditorPageProps { dialogs: ReturnType<typeof useProjectDialogs>; }
+// interface EditorPageProps { dialogs: ReturnType<typeof useProjectDialogs>; }
 
-export default function EditorPage({
-  dialogs,
-}: EditorPageProps) {
+export default function EditorPage() {
+  const dialogs = useProjectDialogsContext();
+
 
   return (
     <>
@@ -35,12 +37,11 @@ export default function EditorPage({
         </div>
 
         <Button onClick={dialogs.openCreate}>
-          <Plus className="size-4" />
-          New project
-        </Button>
+      <Plus className="size-4" />
+      New project
+    </Button>
       </div>
 
-      <CreateProjectDialog {...dialogs} />
     </>
   );
 }
