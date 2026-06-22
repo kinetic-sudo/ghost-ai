@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { MOCK_PROJECTS, nameToSlug, type Project } from "@/lib/mock-projects";
 
+import { useEffect } from "react";
+
 export type DialogType = "create" | "rename" | "delete" | null;
 
 interface DialogState {
@@ -15,6 +17,9 @@ interface FormState {
   name: string;
   slug: string;
 }
+
+
+
 
 export function useProjectDialogs() {
   const [dialog, setDialog] = useState<DialogState>({
@@ -32,8 +37,10 @@ export function useProjectDialogs() {
   const sharedProjects = projects.filter(
     (p) => p.role === "collaborator"
   );
-
   
+  useEffect(() => {
+    console.log("projects state changed", projects.length);
+  }, [projects]);
 
   // --- Openers ---
 
@@ -77,13 +84,10 @@ export function useProjectDialogs() {
     };
   
     setIsLoading(true);
-  
     setTimeout(() => {
         setProjects((prev) => {
           const next = [...prev, newProject];
-      
-          console.log("after add", next.length);
-      
+          console.log("setting projects", next.length);
           return next;
         });
       

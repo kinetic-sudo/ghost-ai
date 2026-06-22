@@ -93,12 +93,11 @@ export function ProjectSidebar({
   onClose,
   className,
 }: ProjectSidebarProps) {
-  const dialogs = useProjectDialogs();
   const ownedProjects = dialogs.ownedProjects;
   const sharedProjects = dialogs.sharedProjects
 
   console.log("ProjectSidebar render");
-  console.log("projects", dialogs.projects.length);
+  console.log("projects array", dialogs.projects);  
   console.log("ownedProjects", dialogs.ownedProjects.length);
 
   return (

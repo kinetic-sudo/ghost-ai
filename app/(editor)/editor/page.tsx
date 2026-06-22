@@ -7,7 +7,7 @@ import { CreateProjectDialog } from "@/components/editor/project-dialogs";
 import { useProjectDialogs } from "@/hooks/use-project-dialogs";
 
 export default function EditorPage() {
-  const dialogs = useProjectDialogs();
+  // const dialogs = useProjectDialogs();
 
   return (
     <>

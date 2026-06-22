@@ -18,7 +18,8 @@ export function EditorLayout({ children }: EditorLayoutProps) {
         isSidebarOpen={isSidebarOpen}
         onSidebarToggle={() => setIsSidebarOpen((open) => !open)}
       />
-      <ProjectSidebar
+       <ProjectSidebar
+        dialogs={dialogs}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
       />
