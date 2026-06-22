@@ -13,7 +13,6 @@ import {
 
 interface EditorLayoutProps {
   children: React.ReactNode;
-  dialogs: ReturnType<typeof useProjectDialogs>;
 }
 
 

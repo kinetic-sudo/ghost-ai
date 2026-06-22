@@ -16,7 +16,6 @@ import {
 import { cn } from "@/lib/utils";
 
 interface ProjectSidebarProps {
-  dialogs: ReturnType<typeof useProjectDialogs>;
   isOpen: boolean;
   onClose: () => void;
   className?: string;
@@ -208,9 +207,9 @@ export function ProjectSidebar({
       </div>
 
       {/* Dialogs outside the sidebar to avoid clipping */}
-      <CreateProjectDialog {...dialogs} />
+      {/* <CreateProjectDialog {...dialogs} />
       <RenameProjectDialog {...dialogs} />
-      <DeleteProjectDialog {...dialogs} />
+      <DeleteProjectDialog {...dialogs} /> */}
     </>
   );
 }
