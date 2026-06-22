@@ -27,8 +27,8 @@ export function CreateProjectDialog({
     <EditorDialog
       open={isOpen}
       onOpenChange={(open) => !open && closeDialog()}
-      title="New project"
-      description="Give your architecture workspace a name."
+      title="Create project"
+      description="Enter a project name to create a new room."
       footer={
         <>
           <Button variant="ghost" onClick={closeDialog} disabled={isLoading}>
@@ -45,7 +45,7 @@ export function CreateProjectDialog({
     >
       <div className="flex flex-col gap-3">
         <Input
-          placeholder="Project name"
+          placeholder="Realtime architecture map"
           value={form.name}
           onChange={(e) => handleNameChange(e.target.value)}
           autoFocus
@@ -53,12 +53,12 @@ export function CreateProjectDialog({
             if (e.key === "Enter") handleCreate();
           }}
         />
-        {form.slug && (
-          <p className="text-xs text-copy-muted">
-            Slug:{" "}
-            <span className="font-mono text-copy-secondary">{form.slug}</span>
-          </p>
-        )}
+        <Input
+          readOnly
+          value={form.slug ? `/editor/${form.slug}` : "/editor/untitled-project"}
+          className="cursor-default text-copy-muted focus-visible:ring-0 focus-visible:border-surface-border"
+          tabIndex={-1}
+        />
       </div>
     </EditorDialog>
   );
@@ -81,7 +81,6 @@ export function RenameProjectDialog({
 
   useEffect(() => {
     if (isOpen) {
-      // Small delay so the dialog finishes mounting before focusing
       const id = setTimeout(() => inputRef.current?.focus(), 50);
       return () => clearTimeout(id);
     }
@@ -93,9 +92,7 @@ export function RenameProjectDialog({
       onOpenChange={(open) => !open && closeDialog()}
       title="Rename project"
       description={
-        dialog.project
-          ? `Renaming "${dialog.project.name}"`
-          : undefined
+        dialog.project ? `Renaming "${dialog.project.name}"` : undefined
       }
       footer={
         <>
