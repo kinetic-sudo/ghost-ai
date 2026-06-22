@@ -45,6 +45,7 @@ export function CreateProjectDialog({
     >
       <div className="flex flex-col gap-3">
         <Input
+        className="text-copy-primary"
           placeholder="Realtime architecture map"
           value={form.name}
           onChange={(e) => handleNameChange(e.target.value)}

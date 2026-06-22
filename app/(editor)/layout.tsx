@@ -1,9 +1,14 @@
+import { ProjectDialogsProvider } from "@/components/editor/project-dialog-context";
 import { EditorLayout } from "@/components/editor/editor-layout";
 
 export default function Layout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-  return <EditorLayout>{children}</EditorLayout>;
+}) {
+  return (
+    <ProjectDialogsProvider>
+      <EditorLayout>{children}</EditorLayout>
+    </ProjectDialogsProvider>
+  );
 }
