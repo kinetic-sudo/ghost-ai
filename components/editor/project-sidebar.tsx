@@ -94,9 +94,12 @@ export function ProjectSidebar({
   className,
 }: ProjectSidebarProps) {
   const dialogs = useProjectDialogs();
+  const ownedProjects = dialogs.ownedProjects;
+  const sharedProjects = dialogs.sharedProjects
 
-  const ownedProjects = MOCK_PROJECTS.filter((p) => p.role === "owner");
-  const sharedProjects = MOCK_PROJECTS.filter((p) => p.role === "collaborator");
+  console.log("ProjectSidebar render");
+  console.log("projects", dialogs.projects.length);
+  console.log("ownedProjects", dialogs.ownedProjects.length);
 
   return (
     <>

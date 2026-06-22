@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { nameToSlug, type Project } from "@/lib/mock-projects";
+import { MOCK_PROJECTS, nameToSlug, type Project } from "@/lib/mock-projects";
 
 export type DialogType = "create" | "rename" | "delete" | null;
 
@@ -21,9 +21,19 @@ export function useProjectDialogs() {
     type: null,
     project: null,
   });
-
   const [form, setForm] = useState<FormState>({ name: "", slug: "" });
   const [isLoading, setIsLoading] = useState(false);
+  const [projects, setProjects] = useState(MOCK_PROJECTS);
+
+  const ownedProjects = projects.filter(
+    (p) => p.role === "owner"
+  );
+  
+  const sharedProjects = projects.filter(
+    (p) => p.role === "collaborator"
+  );
+
+  
 
   // --- Openers ---
 
@@ -57,11 +67,28 @@ export function useProjectDialogs() {
 
   function handleCreate() {
     if (!form.name.trim()) return;
+  
+    const newProject: Project = {
+      id: crypto.randomUUID(),
+      name: form.name,
+      slug: form.slug,
+      role: "owner",
+      updatedAt: new Date().toISOString(),
+    };
+  
     setIsLoading(true);
-    // Simulate async work without real API call
+  
     setTimeout(() => {
-      setIsLoading(false);
-      closeDialog();
+        setProjects((prev) => {
+          const next = [...prev, newProject];
+      
+          console.log("after add", next.length);
+      
+          return next;
+        });
+      
+        setIsLoading(false);
+        closeDialog();
     }, 400);
   }
 
@@ -87,6 +114,9 @@ export function useProjectDialogs() {
     dialog,
     form,
     isLoading,
+    projects,
+    ownedProjects,
+    sharedProjects,
     openCreate,
     openRename,
     openDelete,
@@ -95,5 +125,6 @@ export function useProjectDialogs() {
     handleCreate,
     handleRename,
     handleDelete,
+
   };
 }
