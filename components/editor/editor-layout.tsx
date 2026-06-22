@@ -8,12 +8,12 @@ import { useProjectDialogs } from "@/hooks/use-project-dialogs";
 
 interface EditorLayoutProps {
   children: React.ReactNode;
+  dialogs: ReturnType<typeof useProjectDialogs>;
 }
 
- const dialogs = useProjectDialogs();
 
 
-export function EditorLayout({ children }: EditorLayoutProps) {
+export function EditorLayout({ children, dialogs }: EditorLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
