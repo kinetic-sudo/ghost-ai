@@ -6,8 +6,12 @@ import { Button } from "@/components/ui/button";
 import { CreateProjectDialog } from "@/components/editor/project-dialogs";
 import { useProjectDialogs } from "@/hooks/use-project-dialogs";
 
+interface EditorPageProps {
+  dialogs: ReturnType<typeof useProjectDialogs>;
+}
+
+
 export default function EditorPage() {
-  // const dialogs = useProjectDialogs();
 
   return (
     <>
