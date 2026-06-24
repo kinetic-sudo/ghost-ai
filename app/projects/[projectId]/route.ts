@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-import prisma from "@/lib/prisma";
+import {prisma} from "@/lib/prisma";
 
 interface RouteContext {
   params: Promise<{ projectId: string }>;
