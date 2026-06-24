@@ -1,21 +1,15 @@
-import { PrismaClient } from "@/app/generated/prisma/client";
-import { withAccelerate } from "@prisma/extension-accelerate";
+import { PrismaClient } from "@/app/generated/prisma/client"
+import { PrismaPg } from "@prisma/adapter-pg"
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
+const globalForPrisma = global as unknown as { prisma: PrismaClient }
 
-function createClient(): PrismaClient {
-  return new PrismaClient({
-    // Prisma Postgres (pooled.db.prisma.io) uses accelerateUrl
-    accelerateUrl: process.env.DATABASE_URL!,
-  }).$extends(withAccelerate()) as unknown as PrismaClient;
+function createPrismaClient(): PrismaClient {
+  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL ?? "" })
+  return new PrismaClient({ adapter })
 }
 
-if (!globalForPrisma.prisma) {
-  globalForPrisma.prisma = createClient();
+export const prisma = globalForPrisma.prisma ?? createPrismaClient()
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma
 }
-
-const prisma = globalForPrisma.prisma;
-
-export default prisma;
