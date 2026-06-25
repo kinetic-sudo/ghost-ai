@@ -7,7 +7,7 @@ export default async function Layout({
 }: {
   children: React.ReactNode;
 }) {
-  const { ownedProjects, sharedProjects } = await getProjects();
+  const { ownedProjects, sharedProjects, } = await getProjects();
 
   return (
     <ProjectDialogsProvider>

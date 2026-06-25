@@ -16,12 +16,14 @@ interface EditorLayoutProps {
   children: React.ReactNode;
   ownedProjects: Project[];
   sharedProjects: Project[];
+  activeProjectId?: string;
 }
 
 export function EditorLayout({
   children,
   ownedProjects,
   sharedProjects,
+  activeProjectId
 }: EditorLayoutProps) {
   const actions = useProjectDialogsContext();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -34,6 +36,7 @@ export function EditorLayout({
       />
       <ProjectSidebar
         isOpen={isSidebarOpen}
+        activeProjectId={activeProjectId}
         onClose={() => setIsSidebarOpen(false)}
         ownedProjects={ownedProjects}
         sharedProjects={sharedProjects}
