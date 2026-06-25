@@ -5,19 +5,15 @@ import { FolderOpen, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useProjectDialogs } from "@/hooks/use-project-dialogs";
-import { MOCK_PROJECTS, type Project } from "@/lib/mock-projects";
-import { useProjectDialogsContext } from "./project-dialog-context";
-import {
-  CreateProjectDialog,
-  DeleteProjectDialog,
-  RenameProjectDialog,
-} from "@/components/editor/project-dialogs";
+import { useProjectDialogsContext } from "@/components/editor/project-dialog-context";
 import { cn } from "@/lib/utils";
+import type { Project } from "@/types/project";
 
 interface ProjectSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  ownedProjects: Project[];
+  sharedProjects: Project[];
   className?: string;
 }
 
@@ -39,7 +35,7 @@ function ProjectItem({ project, onRename, onDelete }: ProjectItemProps) {
       <span className="text-sm font-medium text-copy-primary pr-14">
         {project.name}
       </span>
-      <span className="text-xs text-copy-muted">/editor/{project.slug}</span>
+      <span className="text-xs text-copy-muted">/editor/{project.id}</span>
 
       {isOwner && (
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -92,124 +88,113 @@ function EmptyProjectsPlaceholder() {
 export function ProjectSidebar({
   isOpen,
   onClose,
+  ownedProjects,
+  sharedProjects,
   className,
 }: ProjectSidebarProps) {
-  const dialogs = useProjectDialogsContext();
-  const ownedProjects = dialogs.ownedProjects;
-  const sharedProjects = dialogs.sharedProjects
-
-  console.log("ProjectSidebar render");
-  console.log("projects array", dialogs.projects);  
-  console.log("ownedProjects", dialogs.ownedProjects.length);
+  const actions = useProjectDialogsContext();
 
   return (
-    <>
+    <div
+      className={cn(
+        "fixed top-18 left-0 bottom-0 z-40 w-90 p-4 transition-transform duration-200 ease-in-out",
+        isOpen ? "translate-x-0" : "-translate-x-full",
+      )}
+      aria-hidden={!isOpen}
+    >
       <div
         className={cn(
-          "fixed top-18 left-0 bottom-0 z-40 w-90 p-4 transition-transform duration-200 ease-in-out",
-          isOpen ? "translate-x-0" : "-translate-x-full",
+          "flex h-full flex-col rounded-2xl border border-surface-border bg-surface overflow-hidden",
+          className,
         )}
-        aria-hidden={!isOpen}
       >
-        <div
-          className={cn(
-            "flex h-full flex-col rounded-2xl border border-surface-border bg-surface overflow-hidden",
-            className,
-          )}
-        >
-          {/* Header */}
-          <div className="flex items-start justify-between px-5 pt-5 pb-3">
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-2">
-                <FolderOpen className="size-4 text-brand" />
-                <h2 className="text-xs font-semibold uppercase tracking-widest text-brand">
-                  Projects
-                </h2>
-              </div>
-              <p className="text-sm text-copy-muted leading-snug">
-                Create a project or jump into an existing room.
-              </p>
+        {/* Header */}
+        <div className="flex items-start justify-between px-5 pt-5 pb-3">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <FolderOpen className="size-4 text-brand" />
+              <h2 className="text-xs font-semibold uppercase tracking-widest text-brand">
+                Projects
+              </h2>
             </div>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={onClose}
-              aria-label="Close sidebar"
-              className="mt-0.5 shrink-0"
-            >
-              <X className="size-4" />
-            </Button>
+            <p className="text-sm text-copy-muted leading-snug">
+              Create a project or jump into an existing room.
+            </p>
           </div>
-
-          {/* Create button */}
-          <div className="px-4 pb-3">
-            <Button className="w-full" onClick={dialogs.openCreate}>
-              <Plus className="size-4" />
-              Create project
-            </Button>
-          </div>
-
-          {/* Tabs + list */}
-          <Tabs
-            defaultValue="my-projects"
-            className="flex min-h-0 flex-1 flex-col gap-0"
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onClose}
+            aria-label="Close sidebar"
+            className="mt-0.5 shrink-0"
           >
-            <TabsList className="mx-4 shrink-0 self-start w-[calc(100%-2rem)]">
-              <TabsTrigger value="my-projects">My Projects</TabsTrigger>
-              <TabsTrigger value="shared">Shared</TabsTrigger>
-            </TabsList>
-
-            <TabsContent
-              value="my-projects"
-              className="mt-0 flex min-h-0 flex-1 flex-col"
-            >
-              <ScrollArea className="flex-1">
-                {ownedProjects.length === 0 ? (
-                  <EmptyProjectsPlaceholder />
-                ) : (
-                  <div className="flex flex-col gap-2 px-4 py-3">
-                    {ownedProjects.map((project) => (
-                      <ProjectItem
-                        key={project.id}
-                        project={project}
-                        onRename={dialogs.openRename}
-                        onDelete={dialogs.openDelete}
-                      />
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-            </TabsContent>
-
-            <TabsContent
-              value="shared"
-              className="mt-0 flex min-h-0 flex-1 flex-col"
-            >
-              <ScrollArea className="flex-1">
-                {sharedProjects.length === 0 ? (
-                  <EmptyProjectsPlaceholder />
-                ) : (
-                  <div className="flex flex-col gap-2 px-4 py-3">
-                    {sharedProjects.map((project) => (
-                      <ProjectItem
-                        key={project.id}
-                        project={project}
-                        onRename={dialogs.openRename}
-                        onDelete={dialogs.openDelete}
-                      />
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-            </TabsContent>
-          </Tabs>
+            <X className="size-4" />
+          </Button>
         </div>
-      </div>
 
-      {/* Dialogs outside the sidebar to avoid clipping */}
-      {/* <CreateProjectDialog {...dialogs} />
-      <RenameProjectDialog {...dialogs} />
-      <DeleteProjectDialog {...dialogs} /> */}
-    </>
+        {/* Create button */}
+        <div className="px-4 pb-3">
+          <Button className="w-full" onClick={actions.openCreate}>
+            <Plus className="size-4" />
+            Create project
+          </Button>
+        </div>
+
+        {/* Tabs + list */}
+        <Tabs
+          defaultValue="my-projects"
+          className="flex min-h-0 flex-1 flex-col gap-0"
+        >
+          <TabsList className="mx-4 shrink-0 self-start w-[calc(100%-2rem)]">
+            <TabsTrigger value="my-projects">My Projects</TabsTrigger>
+            <TabsTrigger value="shared">Shared</TabsTrigger>
+          </TabsList>
+
+          <TabsContent
+            value="my-projects"
+            className="mt-0 flex min-h-0 flex-1 flex-col"
+          >
+            <ScrollArea className="flex-1">
+              {ownedProjects.length === 0 ? (
+                <EmptyProjectsPlaceholder />
+              ) : (
+                <div className="flex flex-col gap-2 px-4 py-3">
+                  {ownedProjects.map((project) => (
+                    <ProjectItem
+                      key={project.id}
+                      project={project}
+                      onRename={actions.openRename}
+                      onDelete={actions.openDelete}
+                    />
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent
+            value="shared"
+            className="mt-0 flex min-h-0 flex-1 flex-col"
+          >
+            <ScrollArea className="flex-1">
+              {sharedProjects.length === 0 ? (
+                <EmptyProjectsPlaceholder />
+              ) : (
+                <div className="flex flex-col gap-2 px-4 py-3">
+                  {sharedProjects.map((project) => (
+                    <ProjectItem
+                      key={project.id}
+                      project={project}
+                      onRename={actions.openRename}
+                      onDelete={actions.openDelete}
+                    />
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
   );
 }

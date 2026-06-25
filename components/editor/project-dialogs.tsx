@@ -5,9 +5,9 @@ import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EditorDialog } from "@/components/editor/editor-dialog";
-import type { useProjectDialogs } from "@/hooks/use-project-dialogs";
+import type { useProjectActions } from "@/hooks/use-project-dialogs";
 
-type ProjectDialogsProps = ReturnType<typeof useProjectDialogs>;
+type ProjectActionsProps = ReturnType<typeof useProjectActions>;
 
 // ---------------------------------------------------------------------------
 // Create Project Dialog
@@ -20,7 +20,7 @@ export function CreateProjectDialog({
   closeDialog,
   handleNameChange,
   handleCreate,
-}: ProjectDialogsProps) {
+}: ProjectActionsProps) {
   const isOpen = dialog.type === "create";
 
   return (
@@ -34,10 +34,7 @@ export function CreateProjectDialog({
           <Button variant="ghost" onClick={closeDialog} disabled={isLoading}>
             Cancel
           </Button>
-          <Button
-            onClick={handleCreate}
-            disabled={!form.name.trim() || isLoading}
-          >
+          <Button onClick={handleCreate} disabled={isLoading}>
             {isLoading ? "Creating…" : "Create project"}
           </Button>
         </>
@@ -45,7 +42,7 @@ export function CreateProjectDialog({
     >
       <div className="flex flex-col gap-3">
         <Input
-        className="text-copy-primary"
+          className="text-copy-primary"
           placeholder="Realtime architecture map"
           value={form.name}
           onChange={(e) => handleNameChange(e.target.value)}
@@ -54,9 +51,10 @@ export function CreateProjectDialog({
             if (e.key === "Enter") handleCreate();
           }}
         />
+        {/* Room ID preview — always shown, updates live */}
         <Input
           readOnly
-          value={form.slug ? `/editor/${form.slug}` : "/editor/untitled-project"}
+          value={`/editor/${form.roomId || "untitled-xxxxx"}`}
           className="cursor-default text-copy-muted focus-visible:ring-0 focus-visible:border-surface-border"
           tabIndex={-1}
         />
@@ -76,7 +74,7 @@ export function RenameProjectDialog({
   closeDialog,
   handleNameChange,
   handleRename,
-}: ProjectDialogsProps) {
+}: ProjectActionsProps) {
   const isOpen = dialog.type === "rename";
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -97,7 +95,7 @@ export function RenameProjectDialog({
       }
       footer={
         <>
-          <Button variant="ghost" onClick={closeDialog} disabled={isLoading}>
+          <Button variant="default" onClick={closeDialog} disabled={isLoading}>
             Cancel
           </Button>
           <Button
@@ -113,6 +111,7 @@ export function RenameProjectDialog({
         ref={inputRef}
         placeholder="Project name"
         value={form.name}
+        className="text-white"
         onChange={(e) => handleNameChange(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") handleRename();
@@ -131,7 +130,7 @@ export function DeleteProjectDialog({
   isLoading,
   closeDialog,
   handleDelete,
-}: ProjectDialogsProps) {
+}: ProjectActionsProps) {
   const isOpen = dialog.type === "delete";
 
   return (
