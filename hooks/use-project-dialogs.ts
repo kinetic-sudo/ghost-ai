@@ -1,160 +1,156 @@
-import { useEffect, useState } from "react";
+"use client";
 
-import { MOCK_PROJECTS, nameToSlug, type Project } from "@/lib/mock-projects";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
-export type DialogType = "create" | "rename" | "delete" | null;
+import { nameToSlug } from "@/lib/mock-projects";
+import type { Project } from "@/types/project";
+
+export type ActionDialogType = "create" | "rename" | "delete" | null;
 
 interface DialogState {
-  type: DialogType;
+  type: ActionDialogType;
   project: Project | null;
 }
 
 interface FormState {
   name: string;
-  slug: string;
-  slugError: string | null;
+  roomId: string; // slugified name + short suffix
 }
 
-export function useProjectDialogs() {
+// Generates a short random suffix to keep room IDs unique
+function shortSuffix(): string {
+  return Math.random().toString(36).slice(2, 7);
+}
+
+function buildRoomId(name: string): string {
+  const slug = nameToSlug(name);
+  return slug ? `${slug}-${shortSuffix()}` : `untitled-${shortSuffix()}`;
+}
+
+export function useProjectActions(activeProjectId?: string) {
+  const router = useRouter();
+
   const [dialog, setDialog] = useState<DialogState>({
     type: null,
     project: null,
   });
-  const [form, setForm] = useState<FormState>({
-    name: "",
-    slug: "",
-    slugError: null,
-  });
+  const [form, setForm] = useState<FormState>({ name: "", roomId: "" });
   const [isLoading, setIsLoading] = useState(false);
-  const [projects, setProjects] = useState(MOCK_PROJECTS);
-
-  const ownedProjects = projects.filter((p) => p.role === "owner");
-  const sharedProjects = projects.filter((p) => p.role === "collaborator");
-
-  useEffect(() => {
-    console.log("projects state changed", projects.length);
-  }, [projects]);
-
-  // ---------------------------------------------------------------------------
-  // Slug validation
-  // ---------------------------------------------------------------------------
-
-  function validateSlug(slug: string, currentProjectId?: string): string | null {
-    if (!slug) return "Name must produce a valid slug.";
-
-    const duplicate = projects.find(
-      (p) => p.slug === slug && p.id !== currentProjectId,
-    );
-    if (duplicate) return `Slug "${slug}" is already taken.`;
-
-    return null;
-  }
 
   // ---------------------------------------------------------------------------
   // Openers
   // ---------------------------------------------------------------------------
 
   function openCreate() {
-    setForm({ name: "", slug: "", slugError: null });
+    const roomId = buildRoomId("");
+    setForm({ name: "", roomId });
     setDialog({ type: "create", project: null });
   }
 
   function openRename(project: Project) {
-    setForm({ name: project.name, slug: project.slug, slugError: null });
+    setForm({ name: project.name, roomId: "" });
     setDialog({ type: "rename", project });
   }
 
   function openDelete(project: Project) {
-    setForm({ name: "", slug: "", slugError: null });
+    setForm({ name: "", roomId: "" });
     setDialog({ type: "delete", project });
   }
 
   function closeDialog() {
     setDialog({ type: null, project: null });
-    setForm({ name: "", slug: "", slugError: null });
+    setForm({ name: "", roomId: "" });
   }
 
   // ---------------------------------------------------------------------------
-  // Form handlers
+  // Form
   // ---------------------------------------------------------------------------
 
   function handleNameChange(value: string) {
     const slug = nameToSlug(value);
-    const slugError = value.trim()
-      ? validateSlug(slug, dialog.project?.id)
-      : null;
-    setForm({ name: value, slug, slugError });
+    const suffix = form.roomId.split("-").pop() ?? shortSuffix();
+    const roomId = slug ? `${slug}-${suffix}` : `untitled-${suffix}`;
+    setForm({ name: value, roomId });
   }
 
   // ---------------------------------------------------------------------------
-  // Submit handlers
+  // Create — POST /api/projects → navigate to workspace
   // ---------------------------------------------------------------------------
 
-  function handleCreate() {
-    if (!form.name.trim()) return;
-
-    const slugError = validateSlug(form.slug);
-    if (slugError) {
-      setForm((prev) => ({ ...prev, slugError }));
-      return;
-    }
-
-    const newProject: Project = {
-      id: crypto.randomUUID(),
-      name: form.name.trim(),
-      slug: form.slug,
-      role: "owner",
-      updatedAt: new Date().toISOString(),
-    };
-
+  async function handleCreate() {
+    const name = form.name.trim() || "Untitled Project";
     setIsLoading(true);
-    setTimeout(() => {
-      setProjects((prev) => [...prev, newProject]);
-      setIsLoading(false);
+    try {
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) throw new Error("Failed to create project");
+      const project: Project = await res.json();
       closeDialog();
-    }, 400);
+      router.push(`/editor/${project.id}`);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  function handleRename() {
-    if (!form.name.trim() || !dialog.project) return;
+  // ---------------------------------------------------------------------------
+  // Rename — PATCH /api/projects/[id] → refresh
+  // ---------------------------------------------------------------------------
 
-    const slugError = validateSlug(form.slug, dialog.project.id);
-    if (slugError) {
-      setForm((prev) => ({ ...prev, slugError }));
-      return;
-    }
-
+  async function handleRename() {
+    if (!dialog.project || !form.name.trim()) return;
     setIsLoading(true);
-    setTimeout(() => {
-      setProjects((prev) =>
-        prev.map((p) =>
-          p.id === dialog.project!.id
-            ? { ...p, name: form.name.trim(), slug: form.slug }
-            : p,
-        ),
-      );
-      setIsLoading(false);
+    try {
+      const res = await fetch(`/api/projects/${dialog.project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.name.trim() }),
+      });
+      if (!res.ok) throw new Error("Failed to rename project");
       closeDialog();
-    }, 400);
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  function handleDelete() {
+  // ---------------------------------------------------------------------------
+  // Delete — DELETE /api/projects/[id] → redirect or refresh
+  // ---------------------------------------------------------------------------
+
+  async function handleDelete() {
     if (!dialog.project) return;
+    const targetId = dialog.project.id;
     setIsLoading(true);
-    setTimeout(() => {
-      setProjects((prev) => prev.filter((p) => p.id !== dialog.project!.id));
-      setIsLoading(false);
+    try {
+      const res = await fetch(`/api/projects/${targetId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete project");
       closeDialog();
-    }, 400);
+      if (activeProjectId === targetId) {
+        router.push("/editor");
+      } else {
+        router.refresh();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return {
     dialog,
     form,
     isLoading,
-    projects,
-    ownedProjects,
-    sharedProjects,
     openCreate,
     openRename,
     openDelete,

@@ -1,24 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { useProjectDialogsContext } from "@/components/editor/project-dialog-context";
-import { EditorNavbar } from "@/components/editor/editor-navbar";
-import { ProjectSidebar } from "@/components/editor/project-sidebar";
-import { useProjectDialogs } from "@/hooks/use-project-dialogs";
+
 import {
   CreateProjectDialog,
-  RenameProjectDialog,
   DeleteProjectDialog,
+  RenameProjectDialog,
 } from "@/components/editor/project-dialogs";
+import { EditorNavbar } from "@/components/editor/editor-navbar";
+import { ProjectSidebar } from "@/components/editor/project-sidebar";
+import { useProjectDialogsContext } from "@/components/editor/project-dialog-context";
+import type { Project } from "@/types/project";
 
 interface EditorLayoutProps {
   children: React.ReactNode;
+  ownedProjects: Project[];
+  sharedProjects: Project[];
 }
 
-
-
-export function EditorLayout({ children }: EditorLayoutProps) {
-  const dialogs = useProjectDialogsContext();
+export function EditorLayout({
+  children,
+  ownedProjects,
+  sharedProjects,
+}: EditorLayoutProps) {
+  const actions = useProjectDialogsContext();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
@@ -27,15 +32,17 @@ export function EditorLayout({ children }: EditorLayoutProps) {
         isSidebarOpen={isSidebarOpen}
         onSidebarToggle={() => setIsSidebarOpen((open) => !open)}
       />
-       <ProjectSidebar
+      <ProjectSidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        ownedProjects={ownedProjects}
+        sharedProjects={sharedProjects}
       />
       <main className="flex-1 overflow-hidden">{children}</main>
 
-      <CreateProjectDialog {...dialogs} />
-      <RenameProjectDialog {...dialogs} />
-      <DeleteProjectDialog {...dialogs} />
+      <CreateProjectDialog {...actions} />
+      <RenameProjectDialog {...actions} />
+      <DeleteProjectDialog {...actions} />
     </div>
   );
 }
