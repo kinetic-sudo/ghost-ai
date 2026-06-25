@@ -1,7 +1,7 @@
 "use client";
 
 import { FolderOpen, Pencil, Plus, Trash2, X } from "lucide-react";
-
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,6 +15,7 @@ interface ProjectSidebarProps {
   ownedProjects: Project[];
   sharedProjects: Project[];
   className?: string;
+  activeProjectId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -23,15 +24,21 @@ interface ProjectSidebarProps {
 
 interface ProjectItemProps {
   project: Project;
+  isActive?: boolean;
   onRename: (project: Project) => void;
   onDelete: (project: Project) => void;
 }
 
-function ProjectItem({ project, onRename, onDelete }: ProjectItemProps) {
+function ProjectItem({ project, onRename, onDelete, isActive }: ProjectItemProps) {
   const isOwner = project.role === "owner";
 
   return (
-    <div className="group relative flex flex-col gap-0.5 rounded-xl border border-surface-border bg-subtle/40 px-4 py-3 cursor-pointer transition-colors hover:border-brand/50 hover:bg-brand/5">
+    <div className={cn(
+      "group relative flex flex-col gap-0.5 rounded-xl border px-4 py-3 cursor-pointer transition-colors",
+      isActive
+        ? "border-brand bg-brand/10"
+        : "border-surface-border bg-subtle/40 hover:border-brand/50 hover:bg-brand/5"
+    )}>
       <span className="text-sm font-medium text-copy-primary pr-14">
         {project.name}
       </span>
@@ -91,8 +98,23 @@ export function ProjectSidebar({
   ownedProjects,
   sharedProjects,
   className,
+  activeProjectId
 }: ProjectSidebarProps) {
   const actions = useProjectDialogsContext();
+    const [activeTab, setActiveTab] = useState<"my-projects" | "shared">(
+        "my-projects",
+      );
+    
+      useEffect(() => {
+        if (activeProjectId && sharedProjects.some((project) => project.id === activeProjectId)) {
+          setActiveTab("shared");
+          return;
+        }
+    
+        if (activeProjectId && ownedProjects.some((project) => project.id === activeProjectId)) {
+          setActiveTab("my-projects");
+        }
+      }, [activeProjectId, ownedProjects, sharedProjects]);
 
   return (
     <div
@@ -142,9 +164,10 @@ export function ProjectSidebar({
 
         {/* Tabs + list */}
         <Tabs
-          defaultValue="my-projects"
-          className="flex min-h-0 flex-1 flex-col gap-0"
-        >
+         value={activeTab}
+         onValueChange={(value) => setActiveTab(value as "my-projects" | "shared")}
+         className="flex min-h-0 flex-1 flex-col gap-0"
+         >
           <TabsList className="mx-4 shrink-0 self-start w-[calc(100%-2rem)]">
             <TabsTrigger value="my-projects">My Projects</TabsTrigger>
             <TabsTrigger value="shared">Shared</TabsTrigger>
@@ -163,6 +186,7 @@ export function ProjectSidebar({
                     <ProjectItem
                       key={project.id}
                       project={project}
+                      isActive={project.id === activeProjectId}
                       onRename={actions.openRename}
                       onDelete={actions.openDelete}
                     />
@@ -185,6 +209,7 @@ export function ProjectSidebar({
                     <ProjectItem
                       key={project.id}
                       project={project}
+                      isActive={project.id === activeProjectId}
                       onRename={actions.openRename}
                       onDelete={actions.openDelete}
                     />
