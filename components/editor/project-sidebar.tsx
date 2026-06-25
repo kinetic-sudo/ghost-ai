@@ -1,7 +1,7 @@
 "use client";
 
 import { FolderOpen, Pencil, Plus, Trash2, X } from "lucide-react";
-
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -101,6 +101,20 @@ export function ProjectSidebar({
   activeProjectId
 }: ProjectSidebarProps) {
   const actions = useProjectDialogsContext();
+    const [activeTab, setActiveTab] = useState<"my-projects" | "shared">(
+        "my-projects",
+      );
+    
+      useEffect(() => {
+        if (activeProjectId && sharedProjects.some((project) => project.id === activeProjectId)) {
+          setActiveTab("shared");
+          return;
+        }
+    
+        if (activeProjectId && ownedProjects.some((project) => project.id === activeProjectId)) {
+          setActiveTab("my-projects");
+        }
+      }, [activeProjectId, ownedProjects, sharedProjects]);
 
   return (
     <div
@@ -150,9 +164,10 @@ export function ProjectSidebar({
 
         {/* Tabs + list */}
         <Tabs
-          defaultValue="my-projects"
-          className="flex min-h-0 flex-1 flex-col gap-0"
-        >
+         value={activeTab}
+         onValueChange={(value) => setActiveTab(value as "my-projects" | "shared")}
+         className="flex min-h-0 flex-1 flex-col gap-0"
+         >
           <TabsList className="mx-4 shrink-0 self-start w-[calc(100%-2rem)]">
             <TabsTrigger value="my-projects">My Projects</TabsTrigger>
             <TabsTrigger value="shared">Shared</TabsTrigger>

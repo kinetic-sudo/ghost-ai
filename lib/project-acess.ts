@@ -9,6 +9,7 @@ export async function getCurrentIdentity() {
     return null;
   }
 
+
   const clerk = await clerkClient();
   const user = await clerk.users.getUser(userId);
 
@@ -32,21 +33,28 @@ export async function getAccessibleProject(
     return null;
   }
 
+  const accessClauses = [
+    {
+      ownerId: identity.userId,
+    },
+    ...(identity.email
+      ? [
+          {
+            collaborators: {
+              some: {
+                email: identity.email,
+              },
+            },
+          },
+        ]
+      : []),
+  ];
+
+
   const project = await prisma.project.findFirst({
     where: {
       id: roomId,
-      OR: [
-        {
-          ownerId: identity.userId,
-        },
-        {
-          collaborators: {
-            some: {
-              email: identity.email ?? "",
-            },
-          },
-        },
-      ],
+      OR: accessClauses,
     },
   });
 
