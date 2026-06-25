@@ -7,7 +7,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProjectDialogsContext } from "@/components/editor/project-dialog-context";
 import { cn } from "@/lib/utils";
-import type { Project } from "@/types/project";
+import { Project } from "@/types/project";
+import Link from "next/link";
 
 interface ProjectSidebarProps {
   isOpen: boolean;
@@ -33,7 +34,8 @@ function ProjectItem({ project, onRename, onDelete, isActive }: ProjectItemProps
   const isOwner = project.role === "owner";
 
   return (
-    <div className={cn(
+    <Link href={`/editor/${project.id}`}
+    className={cn(
       "group relative flex flex-col gap-0.5 rounded-xl border px-4 py-3 cursor-pointer transition-colors",
       isActive
         ? "border-brand bg-brand/10"
@@ -51,6 +53,7 @@ function ProjectItem({ project, onRename, onDelete, isActive }: ProjectItemProps
             size="icon-sm"
             className="size-7 text-copy-muted hover:text-copy-primary"
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               onRename(project);
             }}
@@ -63,6 +66,7 @@ function ProjectItem({ project, onRename, onDelete, isActive }: ProjectItemProps
             size="icon-sm"
             className="size-7 text-copy-muted hover:text-state-error"
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               onDelete(project);
             }}
@@ -72,7 +76,7 @@ function ProjectItem({ project, onRename, onDelete, isActive }: ProjectItemProps
           </Button>
         </div>
       )}
-    </div>
+    </Link>
   );
 }
 
