@@ -23,10 +23,14 @@ export function EditorLayout({
   children,
   ownedProjects,
   sharedProjects,
-  activeProjectId
+  activeProjectId,
 }: EditorLayoutProps) {
   const actions = useProjectDialogsContext();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // When inside a workspace (/editor/[roomId]) there is an extra h-14 inner
+  // navbar — the sidebar must start below both navbars to avoid overlapping it.
+  const isWorkspace = Boolean(activeProjectId);
 
   return (
     <div className="flex h-screen flex-col">
@@ -36,10 +40,11 @@ export function EditorLayout({
       />
       <ProjectSidebar
         isOpen={isSidebarOpen}
-        activeProjectId={activeProjectId}
         onClose={() => setIsSidebarOpen(false)}
         ownedProjects={ownedProjects}
         sharedProjects={sharedProjects}
+        activeProjectId={activeProjectId}
+        hasInnerNavbar={isWorkspace}
       />
       <main className="flex-1 overflow-hidden">{children}</main>
 
