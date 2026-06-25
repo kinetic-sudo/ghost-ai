@@ -95,7 +95,7 @@ export function RenameProjectDialog({
       }
       footer={
         <>
-          <Button variant="ghost" onClick={closeDialog} disabled={isLoading}>
+          <Button variant="default" onClick={closeDialog} disabled={isLoading}>
             Cancel
           </Button>
           <Button
@@ -111,6 +111,7 @@ export function RenameProjectDialog({
         ref={inputRef}
         placeholder="Project name"
         value={form.name}
+        className="text-white"
         onChange={(e) => handleNameChange(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") handleRename();
