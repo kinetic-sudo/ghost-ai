@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Prisma schema and data layer in place. Ready for API routes and server actions.
+- Project API routes complete. Ready to wire UI to real data.
 
 ## Completed
 
@@ -16,7 +16,8 @@ Update this file whenever the current phase, active feature, or implementation s
 - `02-editor` — `EditorNavbar` (fixed top bar with sidebar toggle), `ProjectSidebar` (floating overlay with My Projects / Shared tabs and New Project button), `EditorDialog` (reusable title / description / footer pattern using design tokens), `EditorLayout` (navbar + sidebar shell).
 - `03-auth` — Clerk provider with `dark` theme and CSS variable overrides, sign-in / sign-up pages with two-panel auth layout, `proxy.ts` route protection, root redirects, `UserButton` in editor navbar.
 - `04-project-dialogs` — Editor home screen, project dialogs (Create / Rename / Delete), sidebar project list with rename/delete actions, mock data, `useProjectDialogs` hook. No API calls or persistence.
-- `05-prisma` — Prisma schema folder layout, `Project` + `ProjectCollaborator` models, `lib/prisma.ts` singleton (Accelerate vs direct pg branching), `instrumentation.ts` for early init, initial migration SQL.
+- `05-prisma` — Prisma schema folder layout, `Project` + `ProjectCollaborator` models, `lib/prisma.ts` singleton (Accelerate via `withAccelerate` + `accelerateUrl`), `prisma.config.ts` at project root loading `.env.local` manually, `npx prisma db push` confirmed working.
+- `06-project-api` — REST routes for list/create/rename/delete. Auth enforced via Clerk `auth()`. Owner-only mutations. No UI wiring.
 
 ## In Progress
 
@@ -24,7 +25,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- API routes / server actions wired to Prisma (replace mock data in `useProjectDialogs`).
+- Wire `useProjectDialogs` to the real API routes (replace mock data).
 - Canvas workspace and project routes.
 
 ## Open Questions
@@ -37,8 +38,9 @@ Update this file whenever the current phase, active feature, or implementation s
 - Editor workspace lives at `/editor`; `/` redirects authenticated users to `/editor` and unauthenticated users to `/sign-in`.
 - Sidebar is a floating panel (`fixed`, `z-40`, slides from left) rendered via `top-18` offset with `p-4` gap creating a card-in-viewport effect. Dialogs are rendered outside the sidebar `<div>` to avoid clipping.
 - Grid background on the editor canvas uses raw hex tokens (`#2a2a30`) in `backgroundImage` inline style — CSS variable opacity shorthand (`hsl(var(...) / alpha)`) does not work with Tailwind v4 hex-based tokens.
-- Prisma schema uses the `prismaSchemaFolder` preview feature so models live in `prisma/models/` rather than a single flat file.
-- `lib/prisma.ts` branches on `DATABASE_URL` prefix: `prisma+postgres://` → Accelerate extension; anything else → direct `@prisma/adapter-pg` with a `pg.Pool`. Client is cached on `globalThis` in development to survive hot-reloads. Full async init (needed for pg adapter) runs via `instrumentation.ts` `register()` before the first request.
+- Prisma uses multi-file schema (`prisma/` folder). `prisma.config.ts` lives at project root and manually parses `.env.local` since the Prisma CLI doesn't load it. Database is Prisma Postgres (`pooled.db.prisma.io`); schema applied via `npx prisma db push`.
+- `lib/prisma.ts` uses `@prisma/extension-accelerate` with `accelerateUrl` — required for Prisma Postgres hosted connections. Client cached on `globalThis` in development.
+- API routes use `auth()` from `@clerk/nextjs/server`. Unauthenticated → 401. Non-owner mutations → 403. `params` is `Promise<{...}>` and must be awaited (Next.js 15 dynamic route segments).
 
 ## Session Notes
 
@@ -75,10 +77,14 @@ Update this file whenever the current phase, active feature, or implementation s
   - `app/editor/page.tsx` — replaced placeholder with centered heading ("Create a project or open an existing one"), muted description, teal "New project" button wired to `CreateProjectDialog`. Full-area grid background using `backgroundImage` with `linear-gradient` at `32px` spacing using raw hex `#2a2a30` (= `--border-default` token).
   - No API calls or persistence added anywhere in this feature.
 
-- **2025-06-22 — Prisma schema and data layer (`05-prisma`)**
-  - Enabled `prismaSchemaFolder` preview feature so models live in `prisma/models/` alongside the root `prisma/schema.prisma`.
-  - `prisma/models/project.prisma` — defines `ProjectStatus` enum (`DRAFT`, `ARCHIVED`), `Project` model (`id` cuid, `ownerId` mapped to `owner_id`, `name`, optional `description`, `status`, optional `canvasJsonPath`, timestamps; indexes on `ownerId` and `createdAt`; table mapped to `"projects"`), `ProjectCollaborator` model (`id` cuid, `projectId` FK with cascade delete, `email`, `createdAt`; unique on `[projectId, email]`; indexes on `email` and `[projectId, createdAt]`; table mapped to `"project_collaborators"`).
-  - `lib/prisma.ts` — exports a cached `PrismaClient` singleton. `getPrisma()` runs synchronously for module-level import compatibility; `initPrisma()` is the async path that wires the correct adapter. Branching: `DATABASE_URL` starting with `prisma+postgres://` uses `@prisma/extension-accelerate`; all other URLs use `@prisma/adapter-pg` with `pg.Pool`. Client cached on `globalThis.prisma` in development to survive hot-reloads.
-  - `instrumentation.ts` — Next.js `register()` hook calls `initPrisma()` on the Node.js runtime before the first request, ensuring the pg adapter is fully wired before any route handler runs.
-  - `prisma/migrations/20250622000000_init/migration.sql` — hand-authored initial migration: creates `ProjectStatus` enum, `projects` table, `project_collaborators` table, all indexes, unique constraint, and the FK with cascade. `migration_lock.toml` added for provider lock.
-  - To apply: `DATABASE_URL=<your-url> npx prisma migrate deploy && npx prisma generate`.
+- **2025-06-24 — Prisma schema and data layer (`05-prisma`)**
+  - Multi-file schema in `prisma/` folder. `prisma/schema.prisma` has only `generator` + `datasource` (no `url`). `prisma/models/project.prisma` has `ProjectStatus` enum, `Project` and `ProjectCollaborator` models.
+  - `prisma.config.ts` at **project root** — manually parses `.env.local` line-by-line into a plain object, then resolves `DATABASE_URL` via `process.env["DATABASE_URL"] ?? localEnv["DATABASE_URL"]`. This is required because the Prisma CLI doesn't load `.env.local`, and `prisma/schema` has no `url` in the datasource block.
+  - `lib/prisma.ts` — singleton using `@prisma/extension-accelerate` with `accelerateUrl`. Import from `@/app/generated/prisma` (generated output path). Cached on `globalThis` in development.
+  - Database: Prisma Postgres (`pooled.db.prisma.io`). Applied via `npx prisma db push` (not `migrate dev` — Prisma Postgres doesn't support shadow databases required by `migrate dev`).
+  - `npx prisma generate` outputs client to `app/generated/prisma`.
+
+- **2025-06-24 — Project API routes (`06-project-api`)**
+  - `app/api/projects/route.ts` — `GET` returns all projects owned by the authenticated user (`ownerId: userId`), ordered by `createdAt` desc. `POST` creates a project; missing/blank `name` defaults to `"Untitled Project"`; uses schema's cuid ID strategy.
+  - `app/api/projects/[projectId]/route.ts` — `PATCH` renames a project (requires `name` in body); `DELETE` removes a project. Both use a shared `getOwnedProject()` helper that fetches the project and checks `ownerId === userId` — returns `"not_found"` or `"forbidden"` discriminants. Unauthenticated → 401, non-owner → 403, missing project → 404. `DELETE` returns 204 No Content. `params` is awaited as `Promise<{ projectId: string }>` per Next.js 15.
+  - No UI wiring in this feature — mock data in `useProjectDialogs` unchanged.
