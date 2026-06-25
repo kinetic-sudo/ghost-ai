@@ -2,21 +2,24 @@
 
 import { FolderOpen, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProjectDialogsContext } from "@/components/editor/project-dialog-context";
 import { cn } from "@/lib/utils";
-import { Project } from "@/types/project";
-import Link from "next/link";
+import type { Project } from "@/types/project";
 
 interface ProjectSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   ownedProjects: Project[];
   sharedProjects: Project[];
-  className?: string;
   activeProjectId?: string;
+  /** Pass true when rendered inside a workspace page that has its own inner navbar */
+  hasInnerNavbar?: boolean;
+  className?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -34,13 +37,15 @@ function ProjectItem({ project, onRename, onDelete, isActive }: ProjectItemProps
   const isOwner = project.role === "owner";
 
   return (
-    <Link href={`/editor/${project.id}`}
-    className={cn(
-      "group relative flex flex-col gap-0.5 rounded-xl border px-4 py-3 cursor-pointer transition-colors",
-      isActive
-        ? "border-brand bg-brand/10"
-        : "border-surface-border bg-subtle/40 hover:border-brand/50 hover:bg-brand/5"
-    )}>
+    <Link
+      href={`/editor/${project.id}`}
+      className={cn(
+        "group relative flex flex-col gap-0.5 rounded-xl border px-4 py-3 cursor-pointer transition-colors",
+        isActive
+          ? "border-brand bg-brand/10"
+          : "border-surface-border bg-subtle/40 hover:border-brand/50 hover:bg-brand/5",
+      )}
+    >
       <span className="text-sm font-medium text-copy-primary pr-14">
         {project.name}
       </span>
@@ -80,10 +85,6 @@ function ProjectItem({ project, onRename, onDelete, isActive }: ProjectItemProps
   );
 }
 
-// ---------------------------------------------------------------------------
-// Empty state
-// ---------------------------------------------------------------------------
-
 function EmptyProjectsPlaceholder() {
   return (
     <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
@@ -101,29 +102,30 @@ export function ProjectSidebar({
   onClose,
   ownedProjects,
   sharedProjects,
+  activeProjectId,
+  hasInnerNavbar = false,
   className,
-  activeProjectId
 }: ProjectSidebarProps) {
   const actions = useProjectDialogsContext();
-    const [activeTab, setActiveTab] = useState<"my-projects" | "shared">(
-        "my-projects",
-      );
-    
-      useEffect(() => {
-        if (activeProjectId && sharedProjects.some((project) => project.id === activeProjectId)) {
-          setActiveTab("shared");
-          return;
-        }
-    
-        if (activeProjectId && ownedProjects.some((project) => project.id === activeProjectId)) {
-          setActiveTab("my-projects");
-        }
-      }, [activeProjectId, ownedProjects, sharedProjects]);
+  const [activeTab, setActiveTab] = useState<"my-projects" | "shared">("my-projects");
+
+  useEffect(() => {
+    if (activeProjectId && sharedProjects.some((p) => p.id === activeProjectId)) {
+      setActiveTab("shared");
+    } else if (activeProjectId && ownedProjects.some((p) => p.id === activeProjectId)) {
+      setActiveTab("my-projects");
+    }
+  }, [activeProjectId, ownedProjects, sharedProjects]);
+
+  // top-12  = 48px (global navbar only)         → /editor home
+  // top-26  = 104px (global + inner workspace navbar h-14 = 56px) → /editor/[roomId]
+  const topClass = hasInnerNavbar ? "top-[104px]" : "top-12";
 
   return (
     <div
       className={cn(
-        "fixed top-18 left-0 bottom-0 z-40 w-90 p-4 transition-transform duration-200 ease-in-out",
+        "fixed left-0 bottom-0 z-40 w-90 p-4 transition-all duration-200 ease-in-out",
+        topClass,
         isOpen ? "translate-x-0" : "-translate-x-full",
       )}
       aria-hidden={!isOpen}
@@ -166,21 +168,18 @@ export function ProjectSidebar({
           </Button>
         </div>
 
-        {/* Tabs + list */}
+        {/* Tabs */}
         <Tabs
-         value={activeTab}
-         onValueChange={(value) => setActiveTab(value as "my-projects" | "shared")}
-         className="flex min-h-0 flex-1 flex-col gap-0"
-         >
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as "my-projects" | "shared")}
+          className="flex min-h-0 flex-1 flex-col gap-0"
+        >
           <TabsList className="mx-4 shrink-0 self-start w-[calc(100%-2rem)]">
             <TabsTrigger value="my-projects">My Projects</TabsTrigger>
             <TabsTrigger value="shared">Shared</TabsTrigger>
           </TabsList>
 
-          <TabsContent
-            value="my-projects"
-            className="mt-0 flex min-h-0 flex-1 flex-col"
-          >
+          <TabsContent value="my-projects" className="mt-0 flex min-h-0 flex-1 flex-col">
             <ScrollArea className="flex-1">
               {ownedProjects.length === 0 ? (
                 <EmptyProjectsPlaceholder />
@@ -200,10 +199,7 @@ export function ProjectSidebar({
             </ScrollArea>
           </TabsContent>
 
-          <TabsContent
-            value="shared"
-            className="mt-0 flex min-h-0 flex-1 flex-col"
-          >
+          <TabsContent value="shared" className="mt-0 flex min-h-0 flex-1 flex-col">
             <ScrollArea className="flex-1">
               {sharedProjects.length === 0 ? (
                 <EmptyProjectsPlaceholder />
