@@ -2,11 +2,7 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation"; // <-- Changed from useParams to read full URL path
-import {
-  CreateProjectDialog,
-  DeleteProjectDialog,
-  RenameProjectDialog,
-} from "@/components/editor/project-dialogs";
+import { ProjectDialogs } from "@/components/editor/project-dialogs";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { useProjectDialogsContext } from "@/components/editor/project-dialog-context";
@@ -79,9 +75,7 @@ export function EditorLayout({
         </main>
       </div>
 
-      <CreateProjectDialog {...actions} />
-      <RenameProjectDialog {...actions} />
-      <DeleteProjectDialog {...actions} />
+      <ProjectDialogs />
     </div>
   );
 }
