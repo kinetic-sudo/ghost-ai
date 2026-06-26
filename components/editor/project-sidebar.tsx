@@ -139,18 +139,13 @@ export function ProjectSidebar({
 
           {/* Footer Action Button */}
           <div className="p-3 mt-auto shrink-0 border-t border-white/[0.04] bg-gradient-to-t from-black/20 to-transparent">
-            <Button 
-              className="w-full h-11 bg-[#00E5FF] hover:bg-[#26eaff] text-black font-semibold rounded-xl flex items-center justify-between pl-1.5 pr-4 shadow-[0_4px_20px_rgba(0,229,255,0.2)] transition-all duration-200 hover:translate-y-[-1px] active:translate-y-[0px] active:scale-[0.99]" 
-              onClick={(e) => { e.stopPropagation(); actions.openCreate(); }}
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-black text-[#00E5FF] shadow-inner font-black text-xs tracking-tighter">
-                N
-              </div>
-              <div className="flex items-center gap-1.5 text-[13px] font-bold tracking-tight">
-                <Plus className="h-4 w-4" strokeWidth={2.5} />
-                New Project
-              </div>
-            </Button>
+          <Button 
+  className="w-full h-11 bg-[#00E5FF] hover:bg-[#26eaff] text-black font-semibold rounded-xl flex items-center justify-center gap-2 px-4 shadow-[0_4px_20px_rgba(0,229,255,0.2)] transition-all duration-200 hover:translate-y-[-1px] active:translate-y-[0px] active:scale-[0.99]" 
+  onClick={(e) => { e.stopPropagation(); actions.openCreate(); }}
+>
+  <Plus className="size-4" strokeWidth={2.5} />
+  <span>Create</span>
+</Button>
           </div>
         </div>
       </div>

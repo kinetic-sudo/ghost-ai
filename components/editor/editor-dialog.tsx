@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import {
   Dialog,
@@ -7,8 +7,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { useProjectActions } from "@/hooks/use-project-dialogs"
 
 interface EditorDialogProps {
   open: boolean;
@@ -29,31 +31,85 @@ export function EditorDialog({
   children,
   className,
 }: EditorDialogProps) {
+  const handleOpenChange = (open: boolean) => {
+    if (!open) close()
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={cn(
-          "max-w-md gap-6 rounded-3xl border border-surface-border bg-elevated p-6 sm:max-w-md",
-          className,
-        )}
-      >
-        <DialogHeader className="gap-1.5">
-          <DialogTitle className="text-copy-primary">{title}</DialogTitle>
-          {description ? (
-            <DialogDescription className="text-copy-muted">
-              {description}
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent showCloseButton>
+          <DialogHeader>
+            <DialogTitle>New Project</DialogTitle>
+            <DialogDescription>
+              Give your project a name to get started.
             </DialogDescription>
-          ) : null}
-        </DialogHeader>
+          </DialogHeader>
 
-        {children ? <div>{children}</div> : null}
+          <div className="flex flex-col gap-2">
+            <Input
+              placeholder="Project name"
+              value={name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              autoFocus
+            />
+            {/* <p className="min-h-4 text-xs text-muted-foreground font-mono">
+              {roomId ? roomId : ""}
+            </p> */}
+          </div>
 
-        {footer ? (
-          <DialogFooter className="mt-0 border-surface-border bg-subtle/50">
-            {footer}
+          <DialogFooter showCloseButton>
+            <Button onClick={submit} disabled={!name.trim() || loading}>
+              {loading ? "Creating…" : "Create Project"}
+            </Button>
           </DialogFooter>
-        ) : null}
-      </DialogContent>
-    </Dialog>
-  );
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={dialogType === "rename"} onOpenChange={handleOpenChange}>
+        <DialogContent showCloseButton>
+          <DialogHeader>
+            <DialogTitle>Rename Project</DialogTitle>
+            <DialogDescription>
+              Renaming &ldquo;{activeProject?.name}&rdquo;
+            </DialogDescription>
+          </DialogHeader>
+
+          <Input
+            placeholder="Project name"
+            value={name}
+            onChange={(e) => handleNameChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && name.trim()) submit()
+            }}
+            autoFocus
+          />
+
+          <DialogFooter showCloseButton>
+            <Button onClick={submit} disabled={!name.trim() || loading}>
+              {loading ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={dialogType === "delete"} onOpenChange={handleOpenChange}>
+        <DialogContent showCloseButton>
+          <DialogHeader>
+            <DialogTitle>Delete Project</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &ldquo;{activeProject?.name}&rdquo;? This action
+              cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter showCloseButton>
+            <Button variant="destructive" onClick={submit} disabled={loading}>
+              {loading ? "Deleting…" : "Delete Project"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
 }
