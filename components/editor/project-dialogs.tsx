@@ -47,7 +47,7 @@ export function ProjectDialogs() {
               value={form.name}
               onChange={(e) => handleNameChange(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && form.name.trim()) handleCreate();
+                if (e.key === "Enter") handleCreate();
               }}
               autoFocus
               className="border-white/[0.08] bg-white/[0.04] text-white placeholder:text-white/20 focus-visible:border-[#00E5FF]/50 focus-visible:ring-0"
@@ -59,7 +59,7 @@ export function ProjectDialogs() {
             )}
             <Button
               onClick={handleCreate}
-              disabled={!form.name.trim() || isLoading}
+              disabled={isLoading}
               className="mt-1 h-10 w-full bg-[#00E5FF] font-semibold text-black hover:bg-[#00E5FF]/90 active:scale-[0.98] disabled:opacity-40"
             >
               {isLoading ? "Creating…" : "Create Project"}
