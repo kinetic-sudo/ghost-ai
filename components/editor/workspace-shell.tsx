@@ -19,7 +19,7 @@ export function WorkspaceShell({ projectName }: WorkspaceShellProps) {
     <div className="flex h-full w-full gap-3 min-w-0">
 
       {/* Canvas panel */}
-      <div className="flex flex-1 flex-col rounded-r-2xl border border-white/10 bg-[#0A0A0A] overflow-hidden shadow-2xl relative min-w-0">
+      <div className="flex flex-1 flex-col rounded-2xl border border-white/10 bg-[#0A0A0A] overflow-hidden shadow-2xl relative min-w-0">
 
         {/* Inner workspace navbar */}
         <header className="flex h-14 shrink-0 items-center justify-between px-5 border-b border-white/[0.05] bg-[#0A0A0A] z-10">

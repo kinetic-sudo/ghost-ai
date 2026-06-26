@@ -34,7 +34,8 @@ export function EditorLayout({
         onSidebarToggle={() => setIsSidebarOpen((open) => !open)}
       />
 
-      <div className="flex flex-1 overflow-hidden">
+      {/* Grid wrapper applying uniform spacing gaps across components */}
+      <div className="flex flex-1 overflow-hidden p-3 gap-3">
         <ProjectSidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
@@ -44,9 +45,8 @@ export function EditorLayout({
           activeProjectId={activeProjectId}
         />
 
-        {/* No left padding — sidebar handles the left edge flush */}
-        {/* Top/right/bottom padding creates the floating gap on 3 sides */}
-        <main className="flex flex-1 overflow-hidden pt-3 pr-3 pb-3 min-w-0">
+        {/* Clean layout viewport context for children */}
+        <main className="flex flex-1 overflow-hidden min-w-0">
           {children}
         </main>
       </div>
