@@ -9,7 +9,7 @@ export function EditorHomeClient() {
 
   return (
     // rounded on right side only — left edge is flush against the sidebar sliver
-    <div className="relative flex w-full h-full flex-col items-center justify-center rounded-r-2xl border border-white/[0.08] bg-[#0D0D0D] overflow-hidden">
+    <div className="relative flex w-full h-full flex-col items-center justify-center rounded-2xl border border-white/[0.08] bg-[#0D0D0D] overflow-hidden">
       {/* Grid */}
       <div
         className="absolute inset-0 pointer-events-none"
