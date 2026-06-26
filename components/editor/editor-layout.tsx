@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-
 import {
   CreateProjectDialog,
   DeleteProjectDialog,
@@ -26,27 +25,31 @@ export function EditorLayout({
   activeProjectId,
 }: EditorLayoutProps) {
   const actions = useProjectDialogsContext();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  // When inside a workspace (/editor/[roomId]) there is an extra h-14 inner
-  // navbar — the sidebar must start below both navbars to avoid overlapping it.
-  const isWorkspace = Boolean(activeProjectId);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#0A0A0A]">
       <EditorNavbar
         isSidebarOpen={isSidebarOpen}
         onSidebarToggle={() => setIsSidebarOpen((open) => !open)}
       />
-      <ProjectSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        ownedProjects={ownedProjects}
-        sharedProjects={sharedProjects}
-        activeProjectId={activeProjectId}
-        hasInnerNavbar={isWorkspace}
-      />
-      <main className="flex-1 overflow-hidden">{children}</main>
+
+      <div className="flex flex-1 overflow-hidden">
+        <ProjectSidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          onOpen={() => setIsSidebarOpen(true)}
+          ownedProjects={ownedProjects}
+          sharedProjects={sharedProjects}
+          activeProjectId={activeProjectId}
+        />
+
+        {/* No left padding — sidebar handles the left edge flush */}
+        {/* Top/right/bottom padding creates the floating gap on 3 sides */}
+        <main className="flex flex-1 overflow-hidden pt-3 pr-3 pb-3 min-w-0">
+          {children}
+        </main>
+      </div>
 
       <CreateProjectDialog {...actions} />
       <RenameProjectDialog {...actions} />

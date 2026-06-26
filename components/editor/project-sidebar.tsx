@@ -1,31 +1,139 @@
-"use client";
+"use client"
 
-import { FolderOpen, Pencil, Plus, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import Link from "next/link";
-
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Link from "next/link"
+import { X, Plus, Pencil, Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { cn } from "@/lib/utils"
 import { useProjectDialogsContext } from "@/components/editor/project-dialog-context";
-import { cn } from "@/lib/utils";
 import type { Project } from "@/types/project";
+import { useState } from "react"
+
 
 interface ProjectSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpen: () => void;
   ownedProjects: Project[];
   sharedProjects: Project[];
   activeProjectId?: string;
-  /** Pass true when rendered inside a workspace page that has its own inner navbar */
-  hasInnerNavbar?: boolean;
   className?: string;
 }
+export function ProjectSidebar({
+  isOpen,
+  onClose,
+  onOpen,
+  ownedProjects = [],
+  sharedProjects = [],
+  activeProjectId,
+  className,
+}: ProjectSidebarProps) {
+  const actions = useProjectDialogsContext();
+  const initialTab = sharedProjects.some(
+    (project) => project.id === activeProjectId
+  )
+    ? "shared"
+    : "my-projects";
 
-// ---------------------------------------------------------------------------
-// Project item
-// ---------------------------------------------------------------------------
+  return (
+    <>
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-bg-base/70 backdrop-blur-sm md:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
 
+      <aside
+        className={cn(
+          "fixed inset-y-3 left-3 top-[5rem] bottom-[2rem] z-50 flex w-72 flex-col rounded-2xl border border-border-subtle bg-bg-surface/95 backdrop-blur-xl transition-transform duration-200",
+          isOpen ? "translate-x-0" : "-translate-x-[calc(100%+1rem)]"
+        )}
+      >
+        <div className="flex h-12 shrink-0 items-center justify-between border-b border-border-default px-4">
+          <span className="text-sm font-medium text-text-primary">Projects</span>
+          <Button variant="ghost" size="icon-sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close sidebar</span>
+          </Button>
+        </div>
+
+        <div className="flex flex-1 flex-col overflow-hidden p-3">
+          <Tabs
+        key={`${activeProjectId ?? "home"}-${initialTab}`}
+            defaultValue={initialTab}
+            className="flex flex-1 flex-col"
+          >
+            <TabsList className="w-full">
+              <TabsTrigger value="my-projects" className="flex-1">
+                My Projects
+              </TabsTrigger>
+              <TabsTrigger value="shared" className="flex-1">
+                Shared
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="my-projects" className="flex-1 overflow-y-auto mt-2">
+              {ownedProjects.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-sm text-text-muted">No projects yet.</p>
+                </div>
+              ) : (
+                <ul className="flex flex-col gap-0.5">
+                  {ownedProjects.map((project) => (
+                    <li key={project.id}>
+                      <ProjectItem
+                        project={project}
+                        isActive={project.id === activeProjectId}
+                        onRename={actions.openRename}
+                        onDelete={actions.openDelete}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </TabsContent>
+
+            <TabsContent value="shared" className="flex-1 overflow-y-auto mt-2">
+              {sharedProjects.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-sm text-text-muted">No shared projects.</p>
+                </div>
+              ) : (
+                <ul className="flex flex-col gap-0.5">
+                  {sharedProjects.map((project) => (
+                    <li key={project.id}>
+                      <ProjectItem
+                        project={project}
+                        isActive={project.id === activeProjectId}
+                        onRename={actions.openRename}
+                      onDelete={actions.openDelete}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        <div className="shrink-0 p-3 border-t border-border-default">
+          <Button
+            variant="default"
+            size="default"
+            className="w-full gap-2"
+            onClick={actions.openCreate}
+          >
+            <Plus className="h-4 w-4" />
+            New Project
+          </Button>
+        </div>
+      </aside>
+    </>
+  )
+
+}
 interface ProjectItemProps {
   project: Project;
   isActive?: boolean;
@@ -33,193 +141,59 @@ interface ProjectItemProps {
   onDelete: (project: Project) => void;
 }
 
-function ProjectItem({ project, onRename, onDelete, isActive }: ProjectItemProps) {
+function ProjectItem({ project, onRename, onDelete, isActive, }: ProjectItemProps) {
   const isOwner = project.role === "owner";
-
-  return (
-    <Link
-      href={`/editor/${project.id}`}
-      className={cn(
-        "group relative flex flex-col gap-0.5 rounded-xl border px-4 py-3 cursor-pointer transition-colors",
-        isActive
-          ? "border-brand bg-brand/10"
-          : "border-surface-border bg-subtle/40 hover:border-brand/50 hover:bg-brand/5",
-      )}
-    >
-      <span className="text-sm font-medium text-copy-primary pr-14">
-        {project.name}
-      </span>
-      <span className="text-xs text-copy-muted">/editor/{project.id}</span>
-
-      {isOwner && (
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="size-7 text-copy-muted hover:text-copy-primary"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onRename(project);
-            }}
-            aria-label={`Rename ${project.name}`}
-          >
-            <Pencil className="size-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="size-7 text-copy-muted hover:text-state-error"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onDelete(project);
-            }}
-            aria-label={`Delete ${project.name}`}
-          >
-            <Trash2 className="size-3.5" />
-          </Button>
-        </div>
-      )}
-    </Link>
-  );
-}
-
-function EmptyProjectsPlaceholder() {
-  return (
-    <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
-      <p className="text-sm text-copy-muted">No projects yet</p>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Sidebar
-// ---------------------------------------------------------------------------
-
-export function ProjectSidebar({
-  isOpen,
-  onClose,
-  ownedProjects,
-  sharedProjects,
-  activeProjectId,
-  hasInnerNavbar = false,
-  className,
-}: ProjectSidebarProps) {
-  const actions = useProjectDialogsContext();
-  const [activeTab, setActiveTab] = useState<"my-projects" | "shared">("my-projects");
-
-  useEffect(() => {
-    if (activeProjectId && sharedProjects.some((p) => p.id === activeProjectId)) {
-      setActiveTab("shared");
-    } else if (activeProjectId && ownedProjects.some((p) => p.id === activeProjectId)) {
-      setActiveTab("my-projects");
-    }
-  }, [activeProjectId, ownedProjects, sharedProjects]);
-
-  // top-12  = 48px (global navbar only)         → /editor home
-  // top-26  = 104px (global + inner workspace navbar h-14 = 56px) → /editor/[roomId]
-  const topClass = hasInnerNavbar ? "top-[104px]" : "top-12";
-
   return (
     <div
       className={cn(
-        "fixed left-0 bottom-0 z-40 w-90 p-4 transition-all duration-200 ease-in-out",
-        topClass,
-        isOpen ? "translate-x-0" : "-translate-x-full",
+        "group flex items-center gap-2 rounded-xl border px-2 py-1.5 transition-colors",
+        isActive
+          ? "border-border-subtle bg-accent-primary-dim"
+          : "border-transparent hover:bg-bg-subtle"
       )}
-      aria-hidden={!isOpen}
     >
-      <div
+      <span
         className={cn(
-          "flex h-full flex-col rounded-2xl border border-surface-border bg-surface overflow-hidden",
-          className,
+          "size-1.5 shrink-0 rounded-full bg-border-subtle",
+          isActive && "bg-accent-primary"
+        )}
+      />
+      <Link
+        href={`/editor/${project.id}`}
+        aria-current={isActive ? "page" : undefined}
+        className={cn(
+          "min-w-0 flex-1 truncate text-sm",
+          isActive ? "text-text-primary" : "text-text-secondary hover:text-text-primary"
         )}
       >
-        {/* Header */}
-        <div className="flex items-start justify-between px-5 pt-5 pb-3">
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-2">
-              <FolderOpen className="size-4 text-brand" />
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-brand">
-                Projects
-              </h2>
-            </div>
-            <p className="text-sm text-copy-muted leading-snug">
-              Create a project or jump into an existing room.
-            </p>
-          </div>
+        {project.name}
+      </Link>
+      {onRename && onDelete && (
+        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
           <Button
             variant="ghost"
             size="icon-sm"
-            onClick={onClose}
-            aria-label="Close sidebar"
-            className="mt-0.5 shrink-0"
+            onClick={(e) => {
+              e.preventDefault()
+              onRename(project)
+            }}
           >
-            <X className="size-4" />
+            <Pencil className="h-3.5 w-3.5" />
+            <span className="sr-only">Rename</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={(e) => {
+              e.preventDefault()
+              onDelete(project)
+            }}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            <span className="sr-only">Delete</span>
           </Button>
         </div>
-
-        {/* Create button */}
-        <div className="px-4 pb-3">
-          <Button className="w-full" onClick={actions.openCreate}>
-            <Plus className="size-4" />
-            Create project
-          </Button>
-        </div>
-
-        {/* Tabs */}
-        <Tabs
-          value={activeTab}
-          onValueChange={(v) => setActiveTab(v as "my-projects" | "shared")}
-          className="flex min-h-0 flex-1 flex-col gap-0"
-        >
-          <TabsList className="mx-4 shrink-0 self-start w-[calc(100%-2rem)]">
-            <TabsTrigger value="my-projects">My Projects</TabsTrigger>
-            <TabsTrigger value="shared">Shared</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="my-projects" className="mt-0 flex min-h-0 flex-1 flex-col">
-            <ScrollArea className="flex-1">
-              {ownedProjects.length === 0 ? (
-                <EmptyProjectsPlaceholder />
-              ) : (
-                <div className="flex flex-col gap-2 px-4 py-3">
-                  {ownedProjects.map((project) => (
-                    <ProjectItem
-                      key={project.id}
-                      project={project}
-                      isActive={project.id === activeProjectId}
-                      onRename={actions.openRename}
-                      onDelete={actions.openDelete}
-                    />
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          </TabsContent>
-
-          <TabsContent value="shared" className="mt-0 flex min-h-0 flex-1 flex-col">
-            <ScrollArea className="flex-1">
-              {sharedProjects.length === 0 ? (
-                <EmptyProjectsPlaceholder />
-              ) : (
-                <div className="flex flex-col gap-2 px-4 py-3">
-                  {sharedProjects.map((project) => (
-                    <ProjectItem
-                      key={project.id}
-                      project={project}
-                      isActive={project.id === activeProjectId}
-                      onRename={actions.openRename}
-                      onDelete={actions.openDelete}
-                    />
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          </TabsContent>
-        </Tabs>
-      </div>
+      )}
     </div>
-  );
+  )
 }
