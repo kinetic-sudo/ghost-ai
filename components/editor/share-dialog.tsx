@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useShareDialog } from "@/hooks/use-share-dialogs";
-import type { Collaborator } from "@/types/Collaborator";
+import type { Collaborator } from "@/types/collaborator";
 
 interface ShareDialogProps {
   projectId: string;

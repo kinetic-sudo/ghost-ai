@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { Collaborator } from "@/types/Collaborator";
+import type { Collaborator } from "@/types/collaborator";
 
 export function useShareDialog(projectId: string | null) {
   const [isOpen, setIsOpen] = useState(false);
