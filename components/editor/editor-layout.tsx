@@ -56,6 +56,7 @@ export function EditorLayout({
         isSidebarOpen={isSidebarOpen}
         onSidebarToggle={() => setIsSidebarOpen((open) => !open)}
         projectName={solvedProjectName}
+        projectId={currentProjectId}
       />
 
       {/* Grid wrapper applying uniform spacing gaps across components */}
