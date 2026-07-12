@@ -68,7 +68,7 @@ function PersonRow({
       <Avatar person={person} />
       <div className="flex min-w-0 flex-1 flex-col">
         {person.name && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-[6px]">
             <span className="truncate text-sm font-semibold text-white">
               {person.name}
             </span>
@@ -167,15 +167,14 @@ export function ShareDialog({
           {isOwner && (
             <div className="flex flex-col gap-1.5">
               <div className="flex gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-2 items-center">
-                <Mail className="size-4 shrink-0 text-white/30" />
                 <Input
                   type="email"
                   placeholder="teammate@company.com"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") handleInvite();
-                  }}
+                      if (e.key === "Enter") handleInvite();
+                    }}
                   className="flex-1 border-none bg-transparent p-0 text-sm text-white placeholder:text-white/25 focus-visible:ring-0 focus-visible:outline-none shadow-none"
                 />
                 <Button
