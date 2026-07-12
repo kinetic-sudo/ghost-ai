@@ -147,7 +147,7 @@ export function ShareDialog({
             </div>
             <Button
               onClick={handleCopyLink}
-              className="ml-4 shrink-0 h-9 gap-2 rounded-xl bg-[#1A1A1C] border border-white/[0.08] px-4 text-sm font-semibold text-white hover:bg-white/[0.08] transition-all"
+              className="ml-4 shrink-0 h-9 gap-2 rounded-xl bg-[#1A1A1C] border border-white/[0.08] px-4 text-xs font-semibold text-white hover:bg-white/[0.08] transition-all"
             >
               {copied ? (
                 <>
