@@ -32,8 +32,11 @@ export function useShareDialog(projectId: string | null) {
   }, [projectId]);
 
   useEffect(() => {
-    if (isOpen) fetchCollaborators();
-  }, [isOpen, fetchCollaborators]);
+    if (!projectId) return;
+    setInviteEmail("");
+    setInviteError(null);
+    fetchCollaborators();
+  }, [projectId, fetchCollaborators]);
 
   async function handleInvite() {
     if (!projectId || !inviteEmail.trim()) return;
