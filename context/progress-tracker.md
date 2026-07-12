@@ -82,4 +82,5 @@ Update this file whenever the current phase, active feature, or implementation s
   - `components/editor/project-sidebar.tsx` — `activeProjectId` prop added; active item styled `border-brand bg-brand/10`; tab auto-switches on mount/change via `useEffect`; `ProjectItem` wrapped in `<Link>` with `e.preventDefault()` on action buttons.
   - `components/editor/editor-layout.tsx` — `activeProjectId` prop added, passed to `ProjectSidebar`.
   - `app/editor/layout.tsx` — resolves `params?.roomId` and threads `activeProjectId` into both `ProjectDialogsProvider` and `EditorLayout`.
-  - **Bug fixed:** page had `import ... from "@/lib/project-acess"` (missing `c`) → corrected to `@/lib/project-access`.
+- **2026-07-12 — Share dialog invite field**
+  - Fixed `useShareDialog` fetching collaborators when `projectId` is provided (dialog open) instead of relying on unused internal `isOpen` state. Invite email field now shows for project owners.
