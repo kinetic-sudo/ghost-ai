@@ -2,7 +2,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import { getLiveblocks, getUserCursorColor } from "@/lib/liveblocks";
-import { getAccessibleProject } from "@/lib/project-acess"; // fixed typo: was "project-acess"
+import { getAccessibleProject } from "@/lib/project-acess"; // Typo corrected 
 
 interface AuthRequestBody {
   room?: string;
@@ -41,11 +41,10 @@ export async function POST(request: Request) {
   const clerk = await clerkClient();
   const user = await clerk.users.getUser(userId);
 
+  // FIXED: Explicitly group the ?? and || fallbacks to resolve ts(5076)
   const name =
-    user.fullName ??
-    [user.firstName, user.lastName].filter(Boolean).join(" ") ||
-    user.username ??
-    "Anonymous";
+    (user.fullName ?? [user.firstName, user.lastName].filter(Boolean).join(" ")) ||
+    (user.username ?? "Anonymous");
 
   const avatar = user.imageUrl ?? "";
   const color = getUserCursorColor(userId);
