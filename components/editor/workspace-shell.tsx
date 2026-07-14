@@ -1,26 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { Bot, Compass, PanelRight, Share2, Sparkles } from "lucide-react";
+import { Bot, PanelRight, Share2, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { CanvasRoom } from "./canvas-room";
 
 interface WorkspaceShellProps {
   projectName: string;
+  roomId: string;
 }
 
-export function WorkspaceShell({ projectName }: WorkspaceShellProps) {
+export function WorkspaceShell({ projectName, roomId }: WorkspaceShellProps) {
   const [aiOpen, setAiOpen] = useState(true);
 
   return (
-    // This fills the <main> which already has p-3 pl-0 from EditorLayout
-    // so we get: top/right/bottom gap from main's padding, left gap from sidebar edge
     <div className="flex h-full w-full gap-3 min-w-0">
-
       {/* Canvas panel */}
       <div className="flex flex-1 flex-col rounded-2xl border border-white/10 bg-[#0A0A0A] overflow-hidden shadow-2xl relative min-w-0">
-
         {/* Inner workspace navbar */}
         <header className="flex h-14 shrink-0 items-center justify-between px-5 border-b border-white/[0.05] bg-[#0A0A0A] z-10">
           <h1 className="text-sm font-medium text-white/80 truncate">{projectName}</h1>
@@ -49,37 +47,8 @@ export function WorkspaceShell({ projectName }: WorkspaceShellProps) {
         </header>
 
         {/* Canvas */}
-        <main className="relative flex-1 flex items-center justify-center bg-[#0A0A0A] overflow-hidden">
-          {/* Grid */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage: `linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px)`,
-              backgroundSize: "32px 32px",
-              maskImage: "radial-gradient(ellipse 70% 70% at 50% 50%, #000 0%, transparent 100%)",
-              WebkitMaskImage: "radial-gradient(ellipse 70% 70% at 50% 50%, #000 0%, transparent 100%)",
-            }}
-          />
-          {/* Ambient glow */}
-          <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[400px] h-[300px] bg-[#00E5FF]/[0.03] blur-[100px] rounded-full pointer-events-none" />
-
-          {/* Center content */}
-          <div className="relative z-10 flex flex-col items-center text-center max-w-[420px] px-6">
-            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/5 bg-white/[0.02] shadow-xl backdrop-blur-md">
-              <Compass className="size-6 text-[#00E5FF]" strokeWidth={1.5} />
-            </div>
-            <p className="text-[10px] font-bold tracking-[0.2em] text-white/30 uppercase mb-3">
-              Workspace Shell
-            </p>
-            <h2 className="text-[22px] font-medium tracking-tight text-white mb-4 leading-snug">
-              Canvas and collaboration tooling land here next.
-            </h2>
-            <p className="text-[13px] text-white/40 leading-relaxed">
-              This room is ready for the shared architecture canvas, durable AI
-              workflows, and real-time presence. For now, the shell is wired
-              with project context and navigation only.
-            </p>
-          </div>
+        <main className="relative flex-1 flex flex-col bg-[#0A0A0A] overflow-hidden">
+          <CanvasRoom roomId={roomId} />
         </main>
       </div>
 

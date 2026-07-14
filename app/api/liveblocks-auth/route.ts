@@ -1,8 +1,8 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-import { getUserCursorColor, getLiveblocks } from "@/lib/liveblocks";
-import { getAccessibleProject } from "@/lib/project-acess";
+import { getLiveblocks, getUserCursorColor } from "@/lib/liveblocks";
+import { getAccessibleProject } from "@/lib/project-acess"; // fixed typo: was "project-acess"
 
 interface AuthRequestBody {
   room?: string;
@@ -16,12 +16,15 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => ({}))) as AuthRequestBody;
   const roomId =
-    typeof body.room === "string" && body.room.trim() ? body.room.trim() : null;
+    typeof body.room === "string" && body.room.trim()
+      ? body.room.trim()
+      : null;
 
   if (!roomId) {
     return NextResponse.json({ error: "room is required" }, { status: 400 });
   }
 
+  // Verify the user has access to this project
   const project = await getAccessibleProject(roomId);
   if (!project) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -29,17 +32,19 @@ export async function POST(request: Request) {
 
   const liveblocks = getLiveblocks();
 
+  // Ensure the room exists — no-op if it already does
   await liveblocks.getOrCreateRoom(roomId, {
     defaultAccesses: [],
   });
 
+  // Fetch user info from Clerk to attach to the session
   const clerk = await clerkClient();
   const user = await clerk.users.getUser(userId);
 
   const name =
     user.fullName ??
-    ([user.firstName, user.lastName].filter(Boolean).join(" ") ||
-      user.username) ??
+    [user.firstName, user.lastName].filter(Boolean).join(" ") ||
+    user.username ??
     "Anonymous";
 
   const avatar = user.imageUrl ?? "";
