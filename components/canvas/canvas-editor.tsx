@@ -1,16 +1,11 @@
 "use client";
 
-import { useCallback } from "react";
 import {
   ReactFlow,
   Background,
   BackgroundVariant,
   MiniMap,
   ConnectionMode,
-  type NodeChange,
-  type EdgeChange,
-  type OnNodesChange,
-  type OnEdgesChange,
 } from "@xyflow/react";
 import { useLiveblocksFlow } from "@liveblocks/react-flow";
 
@@ -19,30 +14,17 @@ import "@xyflow/react/dist/style.css";
 import { NODE_TYPES, EDGE_TYPES } from "@/types/canvas";
 
 export function CanvasEditor() {
-  // useLiveblocksFlow syncs nodes and edges via Liveblocks Storage.
-  // suspense: true — the hook suspends until the room storage is loaded,
-  // so ClientSideSuspense handles the loading state above this component.
   const { nodes, edges, onNodesChange, onEdgesChange } = useLiveblocksFlow({
     suspense: true,
   });
-
-  const handleNodesChange: OnNodesChange = useCallback(
-    (changes: NodeChange[]) => onNodesChange(changes),
-    [onNodesChange],
-  );
-
-  const handleEdgesChange: OnEdgesChange = useCallback(
-    (changes: EdgeChange[]) => onEdgesChange(changes),
-    [onEdgesChange],
-  );
 
   return (
     <div className="h-full w-full">
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={handleNodesChange}
-        onEdgesChange={handleEdgesChange}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
         nodeTypes={NODE_TYPES}
         edgeTypes={EDGE_TYPES}
         connectionMode={ConnectionMode.Loose}
