@@ -42,5 +42,16 @@ export interface CanvasEdgeData extends Record<string, unknown> {
   label?: string
 }
 
-export type CanvasNode = Node<CanvasNodeData, "canvasNode">
-export type CanvasEdge = Edge<CanvasEdgeData, "canvasEdge">
+// export type CanvasNode = Node<CanvasNodeData, "canvasNode">
+// export type CanvasEdge = Edge<CanvasEdgeData, "canvasEdge">
+
+// ---------------------------------------------------------------------------
+export type CanvasNode = Node<CanvasNodeData, "canvasNode">;
+export type CanvasEdge = Edge<Record<string, unknown>, "canvasEdge">;
+ 
+// ---------------------------------------------------------------------------
+// React Flow nodeTypes / edgeTypes maps
+// (populated with real renderers in later feature specs)
+// ---------------------------------------------------------------------------
+export const NODE_TYPES = {} as const;
+export const EDGE_TYPES = {} as const;
