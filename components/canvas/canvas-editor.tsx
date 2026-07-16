@@ -9,7 +9,6 @@ import {
 } from "@xyflow/react";
 import { useLiveblocksFlow } from "@liveblocks/react-flow";
 
-import "@xyflow/react/dist/style.css";
 
 import { NODE_TYPES, EDGE_TYPES } from "@/types/canvas";
 
