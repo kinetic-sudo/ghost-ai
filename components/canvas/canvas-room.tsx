@@ -1,51 +1,54 @@
 "use client";
 
-import React from "react";
-import { LiveblocksProvider, RoomProvider, ClientSideSuspense } from "@liveblocks/react/suspense";
-import { Loader2, AlertTriangle } from "lucide-react";
-import { Canvas } from "./canvas";
+import {
+  LiveblocksProvider,
+  RoomProvider,
+  ClientSideSuspense,
+} from "@liveblocks/react";
 
-class CanvasErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
-  constructor(props: {children: React.ReactNode}) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="flex-1 flex flex-col items-center justify-center bg-[#0A0A0A] text-white/50 h-full w-full">
-          <AlertTriangle className="size-8 text-red-500/50 mb-4" />
-          <p className="text-sm">Failed to connect to the collaboration room.</p>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
+import { CanvasEditor } from "@/components/canvas/canvas-editor";
 
 interface CanvasRoomProps {
   roomId: string;
 }
 
+function CanvasLoadingState() {
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-[#0A0A0A]">
+      <div className="flex flex-col items-center gap-3">
+        <div className="size-6 animate-spin rounded-full border-2 border-white/10 border-t-[#00E5FF]" />
+        <p className="text-xs text-white/30">Connecting to room…</p>
+      </div>
+    </div>
+  );
+}
+
+function CanvasErrorFallback() {
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-[#0A0A0A]">
+      <div className="flex flex-col items-center gap-2 text-center">
+        <p className="text-sm font-medium text-white/60">
+          Could not connect to the workspace.
+        </p>
+        <p className="text-xs text-white/30">
+          Check your connection and refresh the page.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function CanvasRoom({ roomId }: CanvasRoomProps) {
   return (
-    <CanvasErrorBoundary>
-      <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
-        <RoomProvider id={roomId} initialPresence={{ cursor: null, isThinking: false }}>
-          <ClientSideSuspense fallback={
-            <div className="flex h-full w-full items-center justify-center bg-[#0A0A0A]">
-              <Loader2 className="size-6 text-[#00E5FF] animate-spin" />
-            </div>
-          }>
-            <Canvas />
-          </ClientSideSuspense>
-        </RoomProvider>
-      </LiveblocksProvider>
-    </CanvasErrorBoundary>
+    <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
+      <RoomProvider
+        id={roomId}
+        initialPresence={{ cursor: null, isThinking: false }}
+      >
+        <ClientSideSuspense fallback={<CanvasLoadingState />}>
+          {() => <CanvasEditor />}
+        </ClientSideSuspense>
+      </RoomProvider>
+    </LiveblocksProvider>
   );
 }
