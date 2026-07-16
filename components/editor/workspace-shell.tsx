@@ -1,34 +1,38 @@
 "use client";
 
 import { useState } from "react";
-import { Bot, PanelRight, Share2, Sparkles } from "lucide-react";
+import { Bot, PanelRight, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ShareDialog } from "@/components/editor/share-dialog";
+import { CanvasRoom } from "@/components/canvas/canvas-room";
 import { cn } from "@/lib/utils";
-import { CanvasRoom } from "../canvas/canvas-room";
 
 interface WorkspaceShellProps {
+  projectId: string;
   projectName: string;
-  roomId: string;
 }
 
-export function WorkspaceShell({ projectName, roomId }: WorkspaceShellProps) {
-  const [aiOpen, setAiOpen] = useState(true);
+export function WorkspaceShell({ projectId, projectName }: WorkspaceShellProps) {
+  const [aiOpen, setAiOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   return (
     <div className="flex h-full w-full gap-3 min-w-0">
       {/* Canvas panel */}
-      <div className="flex flex-1 flex-col rounded-2xl border border-white/10 bg-[#0A0A0A] overflow-hidden shadow-2xl relative min-w-0">
+      <div className="flex flex-1 flex-col rounded-r-2xl border border-white/10 bg-[#0A0A0A] overflow-hidden shadow-2xl relative min-w-0">
         {/* Inner workspace navbar */}
         <header className="flex h-14 shrink-0 items-center justify-between px-5 border-b border-white/[0.05] bg-[#0A0A0A] z-10">
-          <h1 className="text-sm font-medium text-white/80 truncate">{projectName}</h1>
+          <h1 className="text-sm font-medium text-white/80 truncate">
+            {projectName}
+          </h1>
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 text-white/50 hover:text-white bg-white/[0.03] hover:bg-white/[0.08] rounded-lg"
+              onClick={() => setShareOpen(true)}
+              className="h-8 gap-1.5 text-white/50 hover:text-white bg-white/[0.03] hover:bg-white/[0.08] rounded-lg"
             >
-              <Share2 className="size-3.5 mr-1.5" />
               Share
             </Button>
             <Button
@@ -46,13 +50,13 @@ export function WorkspaceShell({ projectName, roomId }: WorkspaceShellProps) {
           </div>
         </header>
 
-        {/* Canvas */}
-        <main className="relative flex-1 flex flex-col bg-[#0A0A0A] overflow-hidden">
-          <CanvasRoom roomId={roomId} />
-        </main>
+        {/* Live canvas — fills remaining space */}
+        <div className="flex-1 overflow-hidden">
+          <CanvasRoom roomId={projectId} />
+        </div>
       </div>
 
-      {/* AI Copilot panel */}
+      {/* Collapsible AI sidebar */}
       <aside
         className={cn(
           "shrink-0 flex flex-col rounded-2xl border border-white/10 bg-[#0A0A0A] shadow-2xl overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
@@ -61,7 +65,6 @@ export function WorkspaceShell({ projectName, roomId }: WorkspaceShellProps) {
         aria-hidden={!aiOpen}
       >
         <div className="w-[300px] flex flex-col h-full">
-          {/* Header */}
           <div className="flex items-center justify-between px-5 pt-5 pb-4 shrink-0">
             <div>
               <h3 className="text-[13px] font-medium text-white">AI Copilot</h3>
@@ -70,14 +73,15 @@ export function WorkspaceShell({ projectName, roomId }: WorkspaceShellProps) {
             <Sparkles className="size-4 text-[#8B5CF6]" />
           </div>
 
-          {/* Chat pending card */}
           <div className="px-4 shrink-0">
             <div className="rounded-[14px] border border-white/[0.05] bg-white/[0.02] p-4 flex gap-3">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                 <Bot className="size-3.5" />
               </div>
               <div>
-                <h4 className="text-[13px] font-medium text-white/90">Chat surface pending</h4>
+                <h4 className="text-[13px] font-medium text-white/90">
+                  Chat surface pending
+                </h4>
                 <p className="text-[11px] text-white/40 mt-1.5 leading-relaxed">
                   The toggle is wired. Messaging and generation are
                   intentionally out of scope here.
@@ -88,7 +92,6 @@ export function WorkspaceShell({ projectName, roomId }: WorkspaceShellProps) {
 
           <div className="flex-1" />
 
-          {/* Future hooks */}
           <div className="p-4 shrink-0">
             <div className="rounded-[14px] border border-white/[0.05] bg-white/[0.02] p-4">
               <h4 className="text-[10px] font-bold tracking-widest text-white/30 uppercase mb-2">
@@ -102,6 +105,14 @@ export function WorkspaceShell({ projectName, roomId }: WorkspaceShellProps) {
           </div>
         </div>
       </aside>
+
+      {/* Share dialog */}
+      <ShareDialog
+        projectId={projectId}
+        projectName={projectName}
+        isOpen={shareOpen}
+        onClose={() => setShareOpen(false)}
+      />
     </div>
   );
 }
