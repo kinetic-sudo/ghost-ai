@@ -1,5 +1,8 @@
-import type { Node, Edge } from "@xyflow/react"
+import type { Node, Edge } from "@xyflow/react";
 
+// ---------------------------------------------------------------------------
+// Shapes
+// ---------------------------------------------------------------------------
 export const NODE_SHAPES = [
   "rectangle",
   "diamond",
@@ -7,10 +10,22 @@ export const NODE_SHAPES = [
   "pill",
   "cylinder",
   "hexagon",
-] as const
+] as const;
 
-export type NodeShape = (typeof NODE_SHAPES)[number]
+export type NodeShape = (typeof NODE_SHAPES)[number];
 
+export const SHAPE_DEFAULTS: Record<NodeShape, { width: number; height: number }> = {
+  rectangle: { width: 160, height: 80 },
+  diamond:   { width: 160, height: 120 },
+  circle:    { width: 100, height: 100 },
+  pill:      { width: 160, height: 72 },
+  cylinder:  { width: 120, height: 100 },
+  hexagon:   { width: 140, height: 120 },
+};
+
+// ---------------------------------------------------------------------------
+// Colors
+// ---------------------------------------------------------------------------
 export const NODE_COLORS = [
   { fill: "#1F1F1F", text: "#EDEDED" },
   { fill: "#10233D", text: "#52A8FF" },
@@ -20,38 +35,35 @@ export const NODE_COLORS = [
   { fill: "#3A1726", text: "#F75F8F" },
   { fill: "#0F2E18", text: "#62C073" },
   { fill: "#062822", text: "#0AC7B4" },
-] as const
+] as const;
 
-export const SHAPE_DEFAULTS: Record<NodeShape, { width: number; height: number }> = {
-  rectangle: { width: 160, height: 80 },
-  diamond: { width: 160, height: 120 },
-  circle: { width: 100, height: 100 },
-  pill: { width: 160, height: 72 },
-  cylinder: { width: 120, height: 100 },
-  hexagon: { width: 140, height: 120 },
-}
+// Default node color (first palette entry)
+export const DEFAULT_NODE_COLOR = NODE_COLORS[0];
 
+// ---------------------------------------------------------------------------
+// Node / Edge data
+// ---------------------------------------------------------------------------
 export interface CanvasNodeData extends Record<string, unknown> {
-  label: string
-  color?: string
-  textColor?: string
-  shape?: NodeShape
+  label: string;
+  color?: string;
+  textColor?: string;
+  shape?: NodeShape;
 }
 
 export interface CanvasEdgeData extends Record<string, unknown> {
-  label?: string
+  label?: string;
 }
 
-// export type CanvasNode = Node<CanvasNodeData, "canvasNode">
-// export type CanvasEdge = Edge<CanvasEdgeData, "canvasEdge">
+export type CanvasNode = Node<CanvasNodeData, "canvasNode">;
+export type CanvasEdge = Edge<CanvasEdgeData, "canvasEdge">;
 
 // ---------------------------------------------------------------------------
-export type CanvasNode = Node<CanvasNodeData, "canvasNode">;
-export type CanvasEdge = Edge<Record<string, unknown>, "canvasEdge">;
- 
+// Drag payload sent from the shape panel
 // ---------------------------------------------------------------------------
-// React Flow nodeTypes / edgeTypes maps
-// (populated with real renderers in later feature specs)
-// ---------------------------------------------------------------------------
-export const NODE_TYPES = {} as const;
-export const EDGE_TYPES = {} as const;
+export const DRAG_TYPE = "application/canvas-shape";
+
+export interface ShapeDragPayload {
+  shape: NodeShape;
+  width: number;
+  height: number;
+}
