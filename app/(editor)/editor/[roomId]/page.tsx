@@ -19,5 +19,5 @@ export default async function WorkspacePage({ params }: PageProps) {
   if (!project) return <AccessDenied />;
 
   // CRITICAL FIX: Pass the roomId prop here so the Liveblocks room can initialize!
-  return <WorkspaceShell projectName={project.name} roomId={roomId} />;
+  return <WorkspaceShell projectId={project.id} projectName={project.name} />;
 }
