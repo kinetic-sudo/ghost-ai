@@ -41,7 +41,9 @@ export function EditorLayout({
   const isOwner = ownedProjects.some((p) => p.id === currentProjectId);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#0A0A0A]">
+    // Root fills the screen. overflow-hidden prevents scrollbars during
+    // sidebar slide animations.
+    <div className="relative flex h-screen flex-col overflow-hidden bg-[#0A0A0A]">
       <EditorNavbar
         isSidebarOpen={isSidebarOpen}
         onSidebarToggle={() => setIsSidebarOpen((open) => !open)}
@@ -50,8 +52,11 @@ export function EditorLayout({
         isOwner={isOwner}
       />
 
-      {/* Sidebar + main — no padding, canvas fills flush */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* Canvas fills the full remaining area — sidebars float over it */}
+      <main className="relative flex-1 overflow-hidden">
+        {children}
+
+        {/* Left sidebar — fixed overlay, floats over canvas */}
         <ProjectSidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
@@ -60,11 +65,7 @@ export function EditorLayout({
           sharedProjects={sharedProjects}
           activeProjectId={currentProjectId}
         />
-
-        <main className="flex flex-1 overflow-hidden min-w-0">
-          {children}
-        </main>
-      </div>
+      </main>
 
       <ProjectDialogs />
     </div>
