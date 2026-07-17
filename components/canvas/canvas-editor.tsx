@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 import {
   ReactFlow,
   Background,
@@ -8,7 +8,6 @@ import {
   MiniMap,
   ConnectionMode,
   useReactFlow,
-  ReactFlowProvider, // 1. Import the Provider
   type Node,
 } from "@xyflow/react";
 import { useLiveblocksFlow } from "@liveblocks/react-flow";
@@ -24,26 +23,20 @@ import {
 import { CanvasNodeComponent } from "@/components/canvas/canvas-node";
 import { ShapePanel } from "@/components/canvas/shape-panel";
 
-const NODE_TYPES = {
-  canvasNode: CanvasNodeComponent,
-} as const;
-
+const NODE_TYPES = { canvasNode: CanvasNodeComponent } as const;
 const EDGE_TYPES = {} as const;
 
 let nodeCounter = 0;
-
 function generateNodeId(shape: string): string {
   nodeCounter += 1;
   return `${shape}-${Date.now()}-${nodeCounter}`;
 }
 
-// 2. Rename this to CanvasEditorInner so it can safely consume the context
-function CanvasEditorInner() {
-  const { nodes, edges, onNodesChange, onEdgesChange, setNodes } =
-    useLiveblocksFlow<CanvasNode>({ suspense: true });
-
-  const { screenToFlowPosition } = useReactFlow();
-  const wrapperRef = useRef<HTMLDivElement>(null);
+// ---------------------------------------------------------------------------
+// DropLayer — inside <ReactFlow> so useReactFlow() context is available
+// ---------------------------------------------------------------------------
+function DropLayer() {
+  const { screenToFlowPosition, setNodes } = useReactFlow();
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -64,10 +57,20 @@ function CanvasEditorInner() {
         return;
       }
 
-      const position = screenToFlowPosition({
-        x: e.clientX - payload.width / 2,
-        y: e.clientY - payload.height / 2,
+      // screenToFlowPosition converts a screen-space point to canvas-space,
+      // accounting for the current pan and zoom. We pass the raw cursor
+      // position here — no manual offset needed before the call.
+      const canvasCenter = screenToFlowPosition({
+        x: e.clientX,
+        y: e.clientY,
       });
+
+      // Then offset by half the node size so the node is centered on the
+      // cursor in canvas-space (after transform).
+      const position = {
+        x: canvasCenter.x - payload.width / 2,
+        y: canvasCenter.y - payload.height / 2,
+      };
 
       const newNode: CanvasNode = {
         id: generateNodeId(payload.shape),
@@ -88,22 +91,37 @@ function CanvasEditorInner() {
   );
 
   return (
-    <div ref={wrapperRef} className="relative h-full w-full">
+    <div
+      className="absolute inset-0 z-0"
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CanvasEditor — outer component, sets up ReactFlow context
+// ---------------------------------------------------------------------------
+export function CanvasEditor() {
+  const { nodes, edges, onNodesChange, onEdgesChange } = useLiveblocksFlow({
+    suspense: true,
+  });
+
+  return (
+    <div className="relative h-full w-full">
       <ReactFlow
-        nodes={nodes || []}
-        edges={edges || []}
+        nodes={nodes}
+        edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         nodeTypes={NODE_TYPES}
         edgeTypes={EDGE_TYPES}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
         connectionMode={ConnectionMode.Loose}
-        colorMode="dark"
         fitView
         proOptions={{ hideAttribution: true }}
         className="bg-[#0A0A0A]"
       >
+        <DropLayer />
         <Background
           variant={BackgroundVariant.Dots}
           gap={24}
@@ -119,14 +137,5 @@ function CanvasEditorInner() {
 
       <ShapePanel />
     </div>
-  );
-}
-
-// 3. Export the main CanvasEditor wrapped with the ReactFlowProvider
-export function CanvasEditor() {
-  return (
-    <ReactFlowProvider>
-      <CanvasEditorInner />
-    </ReactFlowProvider>
   );
 }
