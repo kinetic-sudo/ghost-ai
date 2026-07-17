@@ -33,9 +33,9 @@ function generateNodeId(shape: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// DropLayer — inside <ReactFlow> so useReactFlow() context is available
+// Inner — useReactFlow() is safe here because it's inside <ReactFlow>
 // ---------------------------------------------------------------------------
-function DropLayer() {
+function CanvasInner() {
   const { screenToFlowPosition, setNodes } = useReactFlow();
 
   const onDragOver = useCallback((e: React.DragEvent) => {
@@ -46,6 +46,7 @@ function DropLayer() {
   const onDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
+      e.stopPropagation();
 
       const raw = e.dataTransfer.getData(DRAG_TYPE);
       if (!raw) return;
@@ -57,19 +58,13 @@ function DropLayer() {
         return;
       }
 
-      // screenToFlowPosition converts a screen-space point to canvas-space,
-      // accounting for the current pan and zoom. We pass the raw cursor
-      // position here — no manual offset needed before the call.
-      const canvasCenter = screenToFlowPosition({
-        x: e.clientX,
-        y: e.clientY,
-      });
+      // Convert cursor screen position → canvas coordinates (handles pan + zoom)
+      const canvasPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
 
-      // Then offset by half the node size so the node is centered on the
-      // cursor in canvas-space (after transform).
+      // Center the node on the cursor in canvas-space
       const position = {
-        x: canvasCenter.x - payload.width / 2,
-        y: canvasCenter.y - payload.height / 2,
+        x: canvasPos.x - payload.width / 2,
+        y: canvasPos.y - payload.height / 2,
       };
 
       const newNode: CanvasNode = {
@@ -91,8 +86,11 @@ function DropLayer() {
   );
 
   return (
+    // This div is a direct child of ReactFlow and acts as the full-area
+    // drop target. It must be position:absolute inset-0 and pointer-events-all
+    // so drag events reach it before ReactFlow's internal pane catches them.
     <div
-      className="absolute inset-0 z-0"
+      className="absolute inset-0 z-10"
       onDragOver={onDragOver}
       onDrop={onDrop}
     />
@@ -100,7 +98,7 @@ function DropLayer() {
 }
 
 // ---------------------------------------------------------------------------
-// CanvasEditor — outer component, sets up ReactFlow context
+// Outer — sets up Liveblocks + ReactFlow, no card styling
 // ---------------------------------------------------------------------------
 export function CanvasEditor() {
   const { nodes, edges, onNodesChange, onEdgesChange } = useLiveblocksFlow({
@@ -108,7 +106,9 @@ export function CanvasEditor() {
   });
 
   return (
-    <div className="relative h-full w-full">
+    // Full-area container — no border, no radius, no shadow, no background
+    // so the canvas fills flush without looking like a floating card.
+    <div className="h-full w-full relative">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -119,9 +119,10 @@ export function CanvasEditor() {
         connectionMode={ConnectionMode.Loose}
         fitView
         proOptions={{ hideAttribution: true }}
-        className="bg-[#0A0A0A]"
+        // No bg-[#0A0A0A] — let the parent background show through uniformly
+        style={{ background: "transparent" }}
       >
-        <DropLayer />
+        <CanvasInner />
         <Background
           variant={BackgroundVariant.Dots}
           gap={24}
@@ -135,6 +136,7 @@ export function CanvasEditor() {
         />
       </ReactFlow>
 
+      {/* Shape panel floats above the canvas */}
       <ShapePanel />
     </div>
   );
