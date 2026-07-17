@@ -18,11 +18,14 @@ export function WorkspaceShell({ projectId, projectName }: WorkspaceShellProps) 
   const [shareOpen, setShareOpen] = useState(false);
 
   return (
-    <div className="flex h-full w-full gap-3 min-w-0">
-      {/* Canvas panel */}
-      <div className="flex flex-1 flex-col rounded-r-2xl border border-white/10 bg-[#0A0A0A] overflow-hidden shadow-2xl relative min-w-0">
-        {/* Inner workspace navbar */}
-        <header className="flex h-14 shrink-0 items-center justify-between px-5 border-b border-white/[0.05] bg-[#0A0A0A] z-10">
+    // Full-area flex row — no padding, no gap so canvas fills edge-to-edge
+    <div className="flex h-full w-full min-w-0 bg-[#0A0A0A]">
+
+      {/* Canvas area — fills all remaining space, no card styling */}
+      <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
+
+        {/* Workspace inner navbar */}
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/[0.05] bg-[#0A0A0A] px-5 z-20">
           <h1 className="text-sm font-medium text-white/80 truncate">
             {projectName}
           </h1>
@@ -50,7 +53,7 @@ export function WorkspaceShell({ projectId, projectName }: WorkspaceShellProps) 
           </div>
         </header>
 
-        {/* Live canvas — fills remaining space */}
+        {/* Canvas — flush fill, no border/radius/shadow/bg override */}
         <div className="flex-1 overflow-hidden">
           <CanvasRoom roomId={projectId} />
         </div>
@@ -59,7 +62,7 @@ export function WorkspaceShell({ projectId, projectName }: WorkspaceShellProps) 
       {/* Collapsible AI sidebar */}
       <aside
         className={cn(
-          "shrink-0 flex flex-col rounded-2xl border border-white/10 bg-[#0A0A0A] shadow-2xl overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+          "shrink-0 flex flex-col border-l border-white/[0.06] bg-[#0D0D0D] overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
           aiOpen ? "w-[300px] opacity-100" : "w-0 opacity-0 border-none",
         )}
         aria-hidden={!aiOpen}
@@ -106,7 +109,6 @@ export function WorkspaceShell({ projectId, projectName }: WorkspaceShellProps) 
         </div>
       </aside>
 
-      {/* Share dialog */}
       <ShareDialog
         projectId={projectId}
         projectName={projectName}
