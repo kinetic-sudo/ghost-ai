@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import {
   ReactFlow,
   Background,
@@ -32,11 +32,12 @@ function generateNodeId(shape: string): string {
   return `${shape}-${Date.now()}-${nodeCounter}`;
 }
 
-// ---------------------------------------------------------------------------
-// Inner — useReactFlow() is safe here because it's inside <ReactFlow>
-// ---------------------------------------------------------------------------
+// Inner component has access to useReactFlow context
 function CanvasInner() {
   const { screenToFlowPosition, setNodes } = useReactFlow();
+  const { nodes, edges, onNodesChange, onEdgesChange } = useLiveblocksFlow({
+    suspense: true,
+  });
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -46,8 +47,6 @@ function CanvasInner() {
   const onDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
-      e.stopPropagation();
-
       const raw = e.dataTransfer.getData(DRAG_TYPE);
       if (!raw) return;
 
@@ -58,10 +57,7 @@ function CanvasInner() {
         return;
       }
 
-      // Convert cursor screen position → canvas coordinates (handles pan + zoom)
       const canvasPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-
-      // Center the node on the cursor in canvas-space
       const position = {
         x: canvasPos.x - payload.width / 2,
         y: canvasPos.y - payload.height / 2,
@@ -86,57 +82,41 @@ function CanvasInner() {
   );
 
   return (
-    // This div is a direct child of ReactFlow and acts as the full-area
-    // drop target. It must be position:absolute inset-0 and pointer-events-all
-    // so drag events reach it before ReactFlow's internal pane catches them.
-    <div
-      className="absolute inset-0 z-10"
+    // onDragOver + onDrop on the ReactFlow component directly —
+    // no extra blocking div, so nodes remain draggable
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      nodeTypes={NODE_TYPES}
+      edgeTypes={EDGE_TYPES}
       onDragOver={onDragOver}
       onDrop={onDrop}
-    />
+      connectionMode={ConnectionMode.Loose}
+      fitView
+      proOptions={{ hideAttribution: true }}
+      style={{ background: "transparent" }}
+    >
+      <Background
+        variant={BackgroundVariant.Dots}
+        gap={24}
+        size={1}
+        color="rgba(255,255,255,0.08)"
+      />
+      <MiniMap
+        nodeColor="rgba(255,255,255,0.1)"
+        maskColor="rgba(0,0,0,0.6)"
+        className="!border-white/[0.06] !bg-[#111111]"
+      />
+    </ReactFlow>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Outer — sets up Liveblocks + ReactFlow, no card styling
-// ---------------------------------------------------------------------------
 export function CanvasEditor() {
-  const { nodes, edges, onNodesChange, onEdgesChange } = useLiveblocksFlow({
-    suspense: true,
-  });
-
   return (
-    // Full-area container — no border, no radius, no shadow, no background
-    // so the canvas fills flush without looking like a floating card.
-    <div className="h-full w-full relative">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        nodeTypes={NODE_TYPES}
-        edgeTypes={EDGE_TYPES}
-        connectionMode={ConnectionMode.Loose}
-        fitView
-        proOptions={{ hideAttribution: true }}
-        // No bg-[#0A0A0A] — let the parent background show through uniformly
-        style={{ background: "transparent" }}
-      >
-        <CanvasInner />
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={24}
-          size={1}
-          color="rgba(255,255,255,0.08)"
-        />
-        <MiniMap
-          nodeColor="rgba(255,255,255,0.1)"
-          maskColor="rgba(0,0,0,0.6)"
-          className="!border-white/[0.06] !bg-[#111111]"
-        />
-      </ReactFlow>
-
-      {/* Shape panel floats above the canvas */}
+    <div className="relative h-full w-full">
+      <CanvasInner />
       <ShapePanel />
     </div>
   );

@@ -5,6 +5,7 @@ import {
   RoomProvider,
   ClientSideSuspense,
 } from "@liveblocks/react";
+import { ReactFlowProvider } from "@xyflow/react";
 
 import { CanvasEditor } from "@/components/canvas/canvas-editor";
 
@@ -23,21 +24,6 @@ function CanvasLoadingState() {
   );
 }
 
-function CanvasErrorFallback() {
-  return (
-    <div className="flex h-full w-full items-center justify-center bg-[#0A0A0A]">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <p className="text-sm font-medium text-white/60">
-          Could not connect to the workspace.
-        </p>
-        <p className="text-xs text-white/30">
-          Check your connection and refresh the page.
-        </p>
-      </div>
-    </div>
-  );
-}
-
 export function CanvasRoom({ roomId }: CanvasRoomProps) {
   return (
     <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
@@ -45,9 +31,13 @@ export function CanvasRoom({ roomId }: CanvasRoomProps) {
         id={roomId}
         initialPresence={{ cursor: null, isThinking: false }}
       >
-        <ClientSideSuspense fallback={<CanvasLoadingState />}>
-          {() => <CanvasEditor />}
-        </ClientSideSuspense>
+        {/* ReactFlowProvider wraps everything so useReactFlow() works
+            inside CanvasInner which is inside ClientSideSuspense */}
+        <ReactFlowProvider>
+          <ClientSideSuspense fallback={<CanvasLoadingState />}>
+            {() => <CanvasEditor />}
+          </ClientSideSuspense>
+        </ReactFlowProvider>
       </RoomProvider>
     </LiveblocksProvider>
   );
