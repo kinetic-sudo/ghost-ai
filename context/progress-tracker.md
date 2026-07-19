@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Base canvas live. Ready for presence UI, custom nodes, and AI sidebar.
+- Shape panel live. Ready for presence UI, custom node visuals, and AI sidebar.
 
 ## Completed
 
@@ -20,9 +20,11 @@ Update this file whenever the current phase, active feature, or implementation s
 - `06-project-api` — REST routes GET/POST `/api/projects`, PATCH/DELETE `/api/projects/[projectId]`. Auth + owner checks.
 - `07-wire-editor-home` — Server-side data fetch, `useProjectActions` hook, real API mutations, navigate/refresh/redirect wired.
 - `08-editor-workspace-shell` — `/editor/[roomId]` workspace page, access checks, `AccessDenied` component, `lib/project-access.ts` helpers, workspace shell with AI sidebar placeholder.
-- `09-share-dialog` — Collaborator API routes (GET/POST `/api/projects/[projectId]/collaborators`, DELETE `/api/projects/[projectId]/collaborators/[email]`), Clerk enrichment for name/avatar, `useShareDialog` hook, `ShareDialog` component, `EditorNavbar` wired with `projectId` + `isOwner` props.
-- `10-liveblocks-setup` — **Server-side only.** `liveblocks.config.ts`, `lib/liveblocks.ts` (cached singleton + color helper), `POST /api/liveblocks-auth` (auth → access check → room provision → session token).
-- `11-base-canvas` — `types/canvas.ts` (CanvasNodeData, CanvasNode, CanvasEdge, NODE_TYPES, EDGE_TYPES), `components/canvas/canvas-room.tsx` (LiveblocksProvider + RoomProvider + ClientSideSuspense + error fallback), `components/canvas/canvas-editor.tsx` (ReactFlow + useLiveblocksFlow + dot Background + MiniMap + loose connections + fitView), `WorkspaceShell` updated to render CanvasRoom.
+- `09-share-dialog` — Collaborator API routes, Clerk enrichment, `useShareDialog` hook, `ShareDialog` component, `EditorNavbar` wired with `projectId` + `isOwner` props.
+- `10-liveblocks-setup` — **Server-side only.** `liveblocks.config.ts`, `lib/liveblocks.ts`, `POST /api/liveblocks-auth`.
+- `11-base-canvas` — `types/canvas.ts`, `canvas-room.tsx`, `canvas-editor.tsx`, `WorkspaceShell` updated to render CanvasRoom.
+- `12-shape-panel` — Floating shape toolbar, drag payload, drop handler, `CanvasNodeComponent` basic renderer, `types/canvas.ts` extended with `DRAG_TYPE`, `ShapeDragPayload`, `DEFAULT_NODE_COLOR`.
+- `13-shape-rendering` — Implemented proper CSS rendering (rectangle, pill, circle) and dynamic scalable SVG rendering (diamond, hexagon, cylinder). Native HTML5 drag preview ghosts fully functional and attached to cursor.
 
 ## In Progress
 
@@ -30,30 +32,31 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Presence UI — live cursors, user avatars in the toolbar.
-- Custom node and edge renderers.
+- Presence UI — live cursors, user avatars.
 - AI sidebar implementation.
 
 ## Open Questions
 
-- Canvas storage schema for persistence — deferred to a later spec.
+- Canvas storage persistence — deferred to a later spec.
 
 ## Architecture Decisions
 
 - Route protection uses protected-first `proxy.ts`: only sign-in/sign-up paths are public.
 - Editor workspace lives at `/editor`; `/` redirects by auth state.
-- Workspace route is `/editor/[roomId]` where `roomId` = Prisma project `id` (cuid). **Project ID and Liveblocks room ID are intentionally the same value.**
+- Workspace route is `/editor/[roomId]` where `roomId` = Prisma project `id` (cuid). Project ID and Liveblocks room ID are the same value.
 - Sidebar: fixed overlay, `rounded-2xl` card, collapses to `N` button at bottom-left.
 - Prisma multi-file schema. `prisma.config.ts` at project root parses `.env.local` manually.
 - `lib/prisma.ts` uses `@prisma/extension-accelerate` with `accelerateUrl`. Named export `{ prisma }`.
 - API routes use `auth()` from `@clerk/nextjs/server`. Unauthenticated → 401. Non-owner → 403. `params` awaited (Next.js 15).
-- `useProjectActions` owns all mutations. Dialog state in `ProjectDialogsProvider` context. `activeProjectId` resolved client-side via `usePathname()`.
-- `lib/project-access.ts` — `getAccessibleProject(roomId)` queries Prisma with OR: owner OR collaborator email. Used by workspace page and Liveblocks auth route.
-- Canvas architecture: `CanvasRoom` (client) wraps `LiveblocksProvider` → `RoomProvider` → `ClientSideSuspense` → `CanvasEditor`. The workspace page stays server-side; only `CanvasRoom` and below are client components.
-- `useLiveblocksFlow({ suspense: true })` — suspends until Liveblocks Storage is loaded; `ClientSideSuspense` above handles the loading spinner. Starts with empty nodes/edges from Liveblocks Storage.
-- `NODE_TYPES` and `EDGE_TYPES` are empty maps for now — custom renderers added in later specs without changing the canvas wiring.
-- React Flow `ConnectionMode.Loose` allows connections from any handle. `proOptions: { hideAttribution: true }` suppresses the watermark.
-- `@xyflow/react/dist/style.css` imported inside `CanvasEditor` — must be a client component import only.
+- `useProjectActions` owns all mutations. Dialog state in `ProjectDialogsProvider` context. `activeProjectId` resolved via `usePathname()`.
+- `lib/project-access.ts` — `getAccessibleProject(roomId)` queries Prisma with OR: owner OR collaborator email.
+- Canvas architecture: `CanvasRoom` → `LiveblocksProvider` → `RoomProvider` → `ClientSideSuspense` → `CanvasEditor`. Workspace page stays server-side.
+- `useLiveblocksFlow({ suspense: true })` suspends until storage loads. `setNodes` used directly for drop-created nodes.
+- `NODE_TYPES = { canvasNode: CanvasNodeComponent }` registered in `canvas-editor.tsx` — not in `types/canvas.ts` (avoids importing a client component into a shared types file).
+- Drag payload uses `DRAG_TYPE = "application/canvas-shape"` as the `dataTransfer` key. Payload shape: `{ shape, width, height }`.
+- Node ID format: `{shape}-{Date.now()}-{counter}` — monotonic session counter avoids ID collisions during rapid drops.
+- Drop position: `screenToFlowPosition({ x: clientX - width/2, y: clientY - height/2 })` — offsets by half the node size so the drop lands centered under the cursor.
+- `CanvasNodeComponent` utilizes separate handlers for traditional CSS-styled primitives and vector-scalable SVG geometries. Drag images rely on HTML5 `setDragImage()` referencing off-screen transient DOM objects to generate native cursors.
 
 ## Session Notes
 
@@ -65,11 +68,14 @@ Update this file whenever the current phase, active feature, or implementation s
 - **2025-06-24 — Project API (`06-project-api`)** — REST routes, auth + owner checks.
 - **2025-06-25 — Wire editor home (`07-wire-editor-home`)** — server fetch, useProjectActions, real mutations.
 - **2025-06-25 — Editor workspace shell (`08-editor-workspace-shell`)** — workspace page, access checks, sidebar active state.
-- **2025-07-11 — Share dialog (`09-share-dialog`)** — collaborator API, useShareDialog, ShareDialog component, EditorNavbar wired.
-- **2025-07-14 — Liveblocks setup (`10-liveblocks-setup`)** — config types, server client, auth route, typo fix.
-- **2025-07-16 — Base canvas (`11-base-canvas`)**
-  - `types/canvas.ts` — `CanvasNodeData { label, color?, shape? }`, `CanvasNode = Node<CanvasNodeData, "canvasNode">`, `CanvasEdge = Edge<..., "canvasEdge">`, empty `NODE_TYPES` + `EDGE_TYPES` maps ready for custom renderers.
-  - `components/canvas/canvas-room.tsx` — `LiveblocksProvider authEndpoint="/api/liveblocks-auth"` → `RoomProvider id={roomId} initialPresence={{ cursor: null, isThinking: false }}` → `ClientSideSuspense fallback={<CanvasLoadingState />}`. Renders `<CanvasEditor />` inside suspense. Inline `CanvasErrorFallback` for connection errors.
-  - `components/canvas/canvas-editor.tsx` — `useLiveblocksFlow({ suspense: true })` provides `{ nodes, edges, onNodesChange, onEdgesChange }`. `ReactFlow` receives synced state + memoised handlers. `Background variant=Dots gap=24 size=1`. `MiniMap` with dark styling. `ConnectionMode.Loose`. `fitView`. `proOptions.hideAttribution`. Imports `@xyflow/react/dist/style.css`.
-  - `components/editor/workspace-shell.tsx` — canvas placeholder div replaced with `<CanvasRoom roomId={projectId} />`. Share dialog now wired directly in WorkspaceShell (no longer in EditorNavbar).
-  - `app/(editor)/editor/[roomId]/page.tsx` — unchanged; still server-side, still passes `project.id` + `project.name` to `WorkspaceShell`.
+- **2025-07-11 — Share dialog (`09-share-dialog`)** — collaborator API, useShareDialog, ShareDialog, EditorNavbar wired.
+- **2025-07-14 — Liveblocks setup (`10-liveblocks-setup`)** — config types, server client, auth route.
+- **2025-07-16 — Base canvas (`11-base-canvas`)** — canvas-room, canvas-editor, types, WorkspaceShell updated.
+- **2025-07-16 — Shape panel (`12-shape-panel`)**
+  - `types/canvas.ts` — extended: `DRAG_TYPE = "application/canvas-shape"`, `ShapeDragPayload { shape, width, height }`, `DEFAULT_NODE_COLOR = NODE_COLORS[0]`, `CanvasEdgeData { label? }`.
+  - `components/canvas/canvas-node.tsx` — `CanvasNodeComponent` (memo). Renders bordered rectangle with label centered. Handles on all 4 sides (source type, hidden until hover via opacity). Uses `data.color` / `data.textColor` with `DEFAULT_NODE_COLOR` fallback. Selected state shows `#00E5FF` border + ring.
+  - `components/canvas/shape-panel.tsx` — `ShapePanel` renders a `position: absolute bottom-6` pill-shaped toolbar. One `ShapeButton` per shape. `onDragStart` sets `dataTransfer` with `DRAG_TYPE` key and JSON-serialised `ShapeDragPayload`. Lucide icons: `RectangleHorizontal`, `Diamond`, `Circle`, `Pill`, `Cylinder`, `Hexagon`.
+  - `components/canvas/canvas-editor.tsx` — `NODE_TYPES = { canvasNode: CanvasNodeComponent }` registered locally. `onDragOver` allows copy. `onDrop` reads `DRAG_TYPE` payload, calls `screenToFlowPosition({ x: clientX - w/2, y: clientY - h/2 })`, creates `CanvasNode` with `type: "canvasNode"`, empty label, default color, dragged shape, calls `setNodes(prev => [...prev, newNode])`. `ShapePanel` rendered as overlay inside the wrapper div.
+- **2026-07-19 — Shape rendering (`13-shape-rendering`)**
+  - Updated `components/canvas/canvas-node.tsx` to handle distinct logic sets dividing scalable SVG elements and basic CSS geometry.
+  - Implemented dynamic off-screen DOM injection with HTML5 `setDragImage()` in `components/canvas/shape-panel.tsx` to securely track visual proxies matching drop-scale sizing directly to the user drag action natively.
