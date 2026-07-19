@@ -24,6 +24,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - `10-liveblocks-setup` — **Server-side only.** `liveblocks.config.ts`, `lib/liveblocks.ts`, `POST /api/liveblocks-auth`.
 - `11-base-canvas` — `types/canvas.ts`, `canvas-room.tsx`, `canvas-editor.tsx`, `WorkspaceShell` updated to render CanvasRoom.
 - `12-shape-panel` — Floating shape toolbar, drag payload, drop handler, `CanvasNodeComponent` basic renderer, `types/canvas.ts` extended with `DRAG_TYPE`, `ShapeDragPayload`, `DEFAULT_NODE_COLOR`.
+- `13-shape-rendering` — Implemented proper CSS rendering (rectangle, pill, circle) and dynamic scalable SVG rendering (diamond, hexagon, cylinder). Native HTML5 drag preview ghosts fully functional and attached to cursor.
 
 ## In Progress
 
@@ -32,7 +33,6 @@ Update this file whenever the current phase, active feature, or implementation s
 ## Next Up
 
 - Presence UI — live cursors, user avatars.
-- Shape-specific node visuals.
 - AI sidebar implementation.
 
 ## Open Questions
@@ -56,7 +56,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - Drag payload uses `DRAG_TYPE = "application/canvas-shape"` as the `dataTransfer` key. Payload shape: `{ shape, width, height }`.
 - Node ID format: `{shape}-{Date.now()}-{counter}` — monotonic session counter avoids ID collisions during rapid drops.
 - Drop position: `screenToFlowPosition({ x: clientX - width/2, y: clientY - height/2 })` — offsets by half the node size so the drop lands centered under the cursor.
-- `CanvasNodeComponent` renders all shapes as a bordered rectangle for now — shape-specific visuals deferred to a later spec.
+- `CanvasNodeComponent` utilizes separate handlers for traditional CSS-styled primitives and vector-scalable SVG geometries. Drag images rely on HTML5 `setDragImage()` referencing off-screen transient DOM objects to generate native cursors.
 
 ## Session Notes
 
@@ -76,3 +76,6 @@ Update this file whenever the current phase, active feature, or implementation s
   - `components/canvas/canvas-node.tsx` — `CanvasNodeComponent` (memo). Renders bordered rectangle with label centered. Handles on all 4 sides (source type, hidden until hover via opacity). Uses `data.color` / `data.textColor` with `DEFAULT_NODE_COLOR` fallback. Selected state shows `#00E5FF` border + ring.
   - `components/canvas/shape-panel.tsx` — `ShapePanel` renders a `position: absolute bottom-6` pill-shaped toolbar. One `ShapeButton` per shape. `onDragStart` sets `dataTransfer` with `DRAG_TYPE` key and JSON-serialised `ShapeDragPayload`. Lucide icons: `RectangleHorizontal`, `Diamond`, `Circle`, `Pill`, `Cylinder`, `Hexagon`.
   - `components/canvas/canvas-editor.tsx` — `NODE_TYPES = { canvasNode: CanvasNodeComponent }` registered locally. `onDragOver` allows copy. `onDrop` reads `DRAG_TYPE` payload, calls `screenToFlowPosition({ x: clientX - w/2, y: clientY - h/2 })`, creates `CanvasNode` with `type: "canvasNode"`, empty label, default color, dragged shape, calls `setNodes(prev => [...prev, newNode])`. `ShapePanel` rendered as overlay inside the wrapper div.
+- **2026-07-19 — Shape rendering (`13-shape-rendering`)**
+  - Updated `components/canvas/canvas-node.tsx` to handle distinct logic sets dividing scalable SVG elements and basic CSS geometry.
+  - Implemented dynamic off-screen DOM injection with HTML5 `setDragImage()` in `components/canvas/shape-panel.tsx` to securely track visual proxies matching drop-scale sizing directly to the user drag action natively.
