@@ -26,6 +26,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - `12-shape-panel` — Floating shape toolbar, drag payload, drop handler, `CanvasNodeComponent` basic renderer, `types/canvas.ts` extended with `DRAG_TYPE`, `ShapeDragPayload`, `DEFAULT_NODE_COLOR`.
 - `13-shape-rendering` — Implemented proper CSS rendering (rectangle, pill, circle) and dynamic scalable SVG rendering (diamond, hexagon, cylinder). Native HTML5 drag preview ghosts fully functional and attached to cursor.
 - `14-node-editing` — Resizing support via `<NodeResizer>`, double-click inline label editing with `<textarea class="nodrag nopan">`, `onConnect` and `onDelete` passed from `useLiveblocksFlow` to `<ReactFlow>`, and explicit handle IDs (`top`, `right`, `bottom`, `left`) wired for edge creation and Liveblocks room storage node deletion.
+- `15-color-toolbar` — Floating node toolbar with predefined background and text color swatches (`NODE_COLORS`). Swatches feature active ring states and hover glowing effects matching text colors. Dragging and panning during toolbar interaction prevented via `nodrag nopan`. Node state updated real-time using `updateNodeData`.
 
 ## In Progress
 
@@ -59,7 +60,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - Drop position: `screenToFlowPosition({ x: clientX - width/2, y: clientY - height/2 })` — offsets by half the node size so the drop lands centered under the cursor.
 - `CanvasNodeComponent` utilizes separate handlers for traditional CSS-styled primitives and vector-scalable SVG geometries. Drag images rely on HTML5 `setDragImage()` referencing off-screen transient DOM objects to generate native cursors.
 - Node handles require explicit string `id` attributes (`top`, `right`, `bottom`, `left`) when multiple handles exist on a node so React Flow can resolve target/source edge connections correctly.
-- Inline textarea editing relies on `nodrag nopan` utility classes to avoid triggering canvas pan/zoom or node dragging while typing.
+- Inline textarea editing and color swatches rely on `nodrag nopan` utility classes to avoid triggering canvas pan/zoom or node dragging while interacting with toolbar elements.
 
 ## Session Notes
 
@@ -88,3 +89,8 @@ Update this file whenever the current phase, active feature, or implementation s
   - Synchronized text modifications live with `updateNodeData`.
   - Passed `onConnect` and `onDelete` directly from `useLiveblocksFlow` to `<ReactFlow>` to persist edge connections and shape deletions into Liveblocks room storage.
   - Assigned explicit `id` parameters (`top`, `right`, `bottom`, `left`) to `<Handle>` elements to restore proper edge connections.
+- **2026-07-20 — Node color toolbar (`15-color-toolbar`)**
+  - Created floating node toolbar displaying color swatches defined in `types/canvas.ts`.
+  - Swatch interaction updates both background (`color`) and matching `textColor` dynamically via `updateNodeData`.
+  - Active color swatches display highlighted outline rings; hover interactions show a glow effect matching the swatch text color.
+  - Applied `nodrag nopan` classes across the toolbar to prevent dragging nodes or panning canvas when changing color options.
