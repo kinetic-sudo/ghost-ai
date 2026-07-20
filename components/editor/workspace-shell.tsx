@@ -5,7 +5,7 @@ import { Bot, PanelRight, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ShareDialog } from "@/components/editor/share-dialog";
-import { CanvasRoom } from "@/components/canvas/canvas-room";
+import { CanvasRoom } from "@/components/editor/canvas/canvas-room";
 import { cn } from "@/lib/utils";
 
 interface WorkspaceShellProps {

@@ -20,8 +20,8 @@ import {
   type ShapeDragPayload,
   type CanvasNode,
 } from "@/types/canvas";
-import { CanvasNodeComponent } from "@/components/canvas/canvas-node";
-import { ShapePanel } from "@/components/canvas/shape-panel";
+import { CanvasNodeComponent } from "@/components/editor/canvas/canvas-node";
+import { ShapePanel } from "@/components/editor/canvas/shape-panel";
 
 const NODE_TYPES = { canvasNode: CanvasNodeComponent } as const;
 const EDGE_TYPES = {} as const;
