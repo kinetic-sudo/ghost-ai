@@ -1,186 +1,250 @@
-"use client";
+"use client"
 
-import { memo } from "react";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { DEFAULT_NODE_COLOR, type CanvasNode, type NodeShape } from "@/types/canvas";
+import { useState, useRef, useEffect, useCallback } from "react"
+import { Handle, Position, NodeResizer, NodeToolbar } from "@xyflow/react"
+import type { NodeProps } from "@xyflow/react"
+import { useMutation } from "@liveblocks/react"
+import { LiveObject } from "@liveblocks/client"
+import type { CanvasNode, NodeShape } from "@/types/canvas"
+import { NODE_COLORS } from "@/types/canvas"
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const DEFAULT_FILL = NODE_COLORS[0].fill
+const DEFAULT_TEXT = NODE_COLORS[0].text
+const BORDER_REST = "rgba(255,255,255,0.1)"
+const BORDER_SELECTED = "rgba(255,255,255,0.35)"
+const RESIZER_COLOR = "rgba(255,255,255,0.3)"
 
-function borderStyle(selected: boolean, color: string) {
-  return selected
-    ? { border: `1.5px solid #00E5FF`, boxShadow: "0 0 0 2px rgba(0,229,255,0.2)" }
-    : { border: `1px solid rgba(255,255,255,0.10)` };
+const MIN_WIDTH = 60
+const MIN_HEIGHT = 40
+
+const HANDLE_CLS =
+  "!h-2.5 !w-2.5 !rounded-full !border-2 !border-bg-base !bg-white opacity-0 transition-opacity group-hover/node:opacity-100"
+
+const RESIZER_HANDLE_STYLE: React.CSSProperties = {
+  width: 8,
+  height: 8,
+  borderRadius: "50%",
+  background: "rgba(255,255,255,0.55)",
+  border: "1px solid rgba(255,255,255,0.2)",
 }
 
-function Handles() {
-  const style = { width: 8, height: 8, opacity: 0, background: "rgba(255,255,255,0.4)" };
+const RESIZER_LINE_STYLE: React.CSSProperties = {
+  borderColor: RESIZER_COLOR,
+  borderWidth: 1,
+}
+
+function DiamondShape({ fill, stroke }: { fill: string; stroke: string }) {
   return (
-    <>
-      <Handle type="source" position={Position.Top}    style={style} />
-      <Handle type="source" position={Position.Right}  style={style} />
-      <Handle type="source" position={Position.Bottom} style={style} />
-      <Handle type="source" position={Position.Left}   style={style} />
-    </>
-  );
+    <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <polygon points="50,0 100,50 50,100 0,50" fill={fill} stroke={stroke} strokeWidth="1.5" />
+    </svg>
+  )
 }
 
-// ---------------------------------------------------------------------------
-// CSS shapes — rectangle, pill, circle
-// ---------------------------------------------------------------------------
+function HexagonShape({ fill, stroke }: { fill: string; stroke: string }) {
+  return (
+    <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <polygon points="25,0 75,0 100,50 75,100 25,100 0,50" fill={fill} stroke={stroke} strokeWidth="1.5" />
+    </svg>
+  )
+}
 
-function RectangleShape({ bg, border, label, textColor }: {
-  bg: string; border: React.CSSProperties; label: string; textColor: string;
-}) {
+function CylinderShape({ fill, stroke }: { fill: string; stroke: string }) {
+  return (
+    <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <rect x="0" y="15" width="100" height="70" fill={fill} />
+      <line x1="0" y1="15" x2="0" y2="85" stroke={stroke} strokeWidth="1.5" />
+      <line x1="100" y1="15" x2="100" y2="85" stroke={stroke} strokeWidth="1.5" />
+      <ellipse cx="50" cy="85" rx="50" ry="15" fill={fill} stroke={stroke} strokeWidth="1.5" />
+      <ellipse cx="50" cy="15" rx="50" ry="15" fill={fill} stroke={stroke} strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function cssBorderRadius(shape: NodeShape): string {
+  if (shape === "pill") return "9999px"
+  if (shape === "circle") return "50%"
+  return "12px"
+}
+
+interface ColorSwatchProps {
+  pair: (typeof NODE_COLORS)[number]
+  isActive: boolean
+  onSelect: (fill: string, text: string) => void
+}
+
+function ColorSwatch({ pair, isActive, onSelect }: ColorSwatchProps) {
+  return (
+    <button
+      className="nodrag nopan"
+      style={{
+        width: 20,
+        height: 20,
+        borderRadius: "50%",
+        background: pair.fill,
+        border: isActive ? `2px solid ${pair.text}` : "2px solid rgba(255,255,255,0.12)",
+        cursor: "pointer",
+        flexShrink: 0,
+        outline: "none",
+        transition: "box-shadow 0.12s",
+      }}
+      onMouseEnter={(e) => {
+        ;(e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 5px 2px ${pair.text}55`
+      }}
+      onMouseLeave={(e) => {
+        ;(e.currentTarget as HTMLButtonElement).style.boxShadow = "none"
+      }}
+      onClick={(e) => {
+        e.stopPropagation()
+        onSelect(pair.fill, pair.text)
+      }}
+      onMouseDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+    />
+  )
+}
+
+type LiveNodeData = LiveObject<{
+  data: LiveObject<{ label: string; color?: string; textColor?: string; shape?: NodeShape }>
+}>
+
+export function CanvasNodeComponent({ id, data, selected }: NodeProps<CanvasNode>) {
+  const fill = data.color ?? DEFAULT_FILL
+  const textColor = data.textColor ?? DEFAULT_TEXT
+  const shape = data.shape ?? "rectangle"
+  const stroke = selected ? BORDER_SELECTED : BORDER_REST
+  const isSvg = shape === "diamond" || shape === "hexagon" || shape === "cylinder"
+
+  const [isEditing, setIsEditing] = useState(false)
+  const editRef = useRef<HTMLDivElement>(null)
+
+  const updateNodeLabel = useMutation(({ storage }, newLabel: string) => {
+    const node = storage.get("flow").get("nodes").get(id)
+    if (!node) return
+    ;(node as unknown as LiveNodeData).get("data").set("label", newLabel)
+  }, [id])
+
+  const updateNodeColor = useMutation(({ storage }, colorFill: string, colorText: string) => {
+    const node = storage.get("flow").get("nodes").get(id)
+    if (!node) return
+    const liveData = (node as unknown as LiveNodeData).get("data")
+    liveData.set("color", colorFill)
+    liveData.set("textColor", colorText)
+  }, [id])
+
+  const startEditing = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    setIsEditing(true)
+  }, [])
+
+  const commitEdit = useCallback(() => {
+    const value = editRef.current?.textContent ?? ""
+    setIsEditing(false)
+    updateNodeLabel(value)
+  }, [updateNodeLabel])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    if (e.key === "Escape" || e.key === "Enter") {
+      commitEdit()
+    }
+  }, [commitEdit])
+
+  useEffect(() => {
+    if (!isEditing || !editRef.current) return
+    const el = editRef.current
+    el.textContent = data.label ?? ""
+    el.focus()
+    const sel = window.getSelection()
+    if (sel) {
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      sel.removeAllRanges()
+      sel.addRange(range)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing])
+
+  const labelContent = (
+    <span
+      className={isSvg ? "relative z-10 truncate px-3" : "truncate px-3"}
+      style={{ color: textColor, visibility: isEditing ? "hidden" : "visible" }}
+    >
+      {data.label || <span style={{ opacity: 0.35 }}>Label</span>}
+    </span>
+  )
+
   return (
     <div
-      className="flex h-full w-full items-center justify-center"
-      style={{ backgroundColor: bg, borderRadius: 8, ...border }}
+      style={{ width: "100%", height: "100%" }}
+      className="group/node relative flex items-center justify-center text-sm font-medium"
+      onDoubleClick={startEditing}
     >
-      <Handles />
-      {label && <span className="truncate px-3 text-sm font-medium" style={{ color: textColor }}>{label}</span>}
-    </div>
-  );
-}
+      <NodeResizer
+        isVisible={selected ?? false}
+        color={RESIZER_COLOR}
+        minWidth={MIN_WIDTH}
+        minHeight={MIN_HEIGHT}
+        handleStyle={RESIZER_HANDLE_STYLE}
+        lineStyle={RESIZER_LINE_STYLE}
+      />
 
-function PillShape({ bg, border, label, textColor }: {
-  bg: string; border: React.CSSProperties; label: string; textColor: string;
-}) {
-  return (
-    <div
-      className="flex h-full w-full items-center justify-center"
-      style={{ backgroundColor: bg, borderRadius: 9999, ...border }}
-    >
-      <Handles />
-      {label && <span className="truncate px-4 text-sm font-medium" style={{ color: textColor }}>{label}</span>}
-    </div>
-  );
-}
+      <NodeToolbar isVisible={selected ?? false} position={Position.Top}>
+        <div className="nodrag nopan flex items-center gap-1.5 rounded-full border border-border-default bg-bg-surface/95 px-2.5 py-1.5 shadow-xl backdrop-blur-xl">
+          {NODE_COLORS.map((pair) => (
+            <ColorSwatch
+              key={pair.fill}
+              pair={pair}
+              isActive={pair.fill === fill}
+              onSelect={updateNodeColor}
+            />
+          ))}
+        </div>
+      </NodeToolbar>
 
-function CircleShape({ bg, border, label, textColor }: {
-  bg: string; border: React.CSSProperties; label: string; textColor: string;
-}) {
-  return (
-    <div
-      className="flex h-full w-full items-center justify-center"
-      style={{ backgroundColor: bg, borderRadius: "50%", ...border }}
-    >
-      <Handles />
-      {label && <span className="truncate px-2 text-sm font-medium text-center" style={{ color: textColor }}>{label}</span>}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// SVG shapes — diamond, hexagon, cylinder
-// ---------------------------------------------------------------------------
-
-function DiamondShape({ bg, stroke, label, textColor, w, h }: {
-  bg: string; stroke: string; label: string; textColor: string; w: number; h: number;
-}) {
-  const cx = w / 2;
-  const cy = h / 2;
-  const points = `${cx},0 ${w},${cy} ${cx},${h} 0,${cy}`;
-  return (
-    <svg width={w} height={h} style={{ overflow: "visible", display: "block" }}>
-      <polygon points={points} fill={bg} stroke={stroke} strokeWidth="1.5" />
-      {label && (
-        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central"
-          fontSize={12} fontWeight={500} fill={textColor} style={{ pointerEvents: "none" }}>
-          {label}
-        </text>
+      {isSvg ? (
+        <>
+          <div className="absolute inset-0">
+            {shape === "diamond" && <DiamondShape fill={fill} stroke={stroke} />}
+            {shape === "hexagon" && <HexagonShape fill={fill} stroke={stroke} />}
+            {shape === "cylinder" && <CylinderShape fill={fill} stroke={stroke} />}
+          </div>
+          {labelContent}
+        </>
+      ) : (
+        <div
+          style={{
+            background: fill,
+            borderRadius: cssBorderRadius(shape),
+            border: `1px solid ${stroke}`,
+            width: "100%",
+            height: "100%",
+          }}
+          className="flex items-center justify-center"
+        >
+          {labelContent}
+        </div>
       )}
-      <Handles />
-    </svg>
-  );
-}
 
-function HexagonShape({ bg, stroke, label, textColor, w, h }: {
-  bg: string; stroke: string; label: string; textColor: string; w: number; h: number;
-}) {
-  const cx = w / 2;
-  const cy = h / 2;
-  const rx = w / 2;
-  const ry = h / 2;
-  // Flat-top hexagon points
-  const pts = [0, 1, 2, 3, 4, 5].map((i) => {
-    const angle = (Math.PI / 3) * i - Math.PI / 6;
-    return `${cx + rx * Math.cos(angle)},${cy + ry * Math.sin(angle)}`;
-  }).join(" ");
-  return (
-    <svg width={w} height={h} style={{ overflow: "visible", display: "block" }}>
-      <polygon points={pts} fill={bg} stroke={stroke} strokeWidth="1.5" />
-      {label && (
-        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central"
-          fontSize={12} fontWeight={500} fill={textColor} style={{ pointerEvents: "none" }}>
-          {label}
-        </text>
+      {isEditing && (
+        <div
+          ref={editRef}
+          contentEditable
+          suppressContentEditableWarning
+          spellCheck={false}
+          className="nodrag nopan absolute inset-0 z-20 flex items-center justify-center text-center text-sm font-medium outline-none cursor-text"
+          style={{ color: textColor, wordBreak: "break-word", padding: "0 12px" }}
+          onBlur={commitEdit}
+          onKeyDown={handleKeyDown}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        />
       )}
-      <Handles />
-    </svg>
-  );
+
+      <Handle id="top" type="source" position={Position.Top} className={HANDLE_CLS} />
+      <Handle id="bottom" type="source" position={Position.Bottom} className={HANDLE_CLS} />
+      <Handle id="left" type="source" position={Position.Left} className={HANDLE_CLS} />
+      <Handle id="right" type="source" position={Position.Right} className={HANDLE_CLS} />
+    </div>
+  )
 }
-
-function CylinderShape({ bg, stroke, label, textColor, w, h }: {
-  bg: string; stroke: string; label: string; textColor: string; w: number; h: number;
-}) {
-  const rx = w / 2;
-  const ry = Math.max(h * 0.12, 10); // ellipse height
-  const bodyTop = ry;
-  const bodyH = h - ry * 2;
-  return (
-    <svg width={w} height={h} style={{ overflow: "visible", display: "block" }}>
-      {/* Body rect */}
-      <rect x={0} y={bodyTop} width={w} height={bodyH} fill={bg} stroke={stroke} strokeWidth="1.5" />
-      {/* Bottom ellipse */}
-      <ellipse cx={rx} cy={bodyTop + bodyH} rx={rx} ry={ry} fill={bg} stroke={stroke} strokeWidth="1.5" />
-      {/* Top ellipse (drawn last to overlay body top edge) */}
-      <ellipse cx={rx} cy={bodyTop} rx={rx} ry={ry} fill={bg} stroke={stroke} strokeWidth="1.5" />
-      {label && (
-        <text x={rx} y={bodyTop + bodyH / 2} textAnchor="middle" dominantBaseline="central"
-          fontSize={12} fontWeight={500} fill={textColor} style={{ pointerEvents: "none" }}>
-          {label}
-        </text>
-      )}
-      <Handles />
-    </svg>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Main node component
-// ---------------------------------------------------------------------------
-
-export const CanvasNodeComponent = memo(function CanvasNodeComponent({
-  data,
-  selected,
-  width = 160,
-  height = 80,
-}: NodeProps<CanvasNode>) {
-  const bg = data.color ?? DEFAULT_NODE_COLOR.fill;
-  const textColor = data.textColor ?? DEFAULT_NODE_COLOR.text;
-  const stroke = selected ? "#00E5FF" : "rgba(255,255,255,0.10)";
-  const border = borderStyle(selected ?? false, stroke);
-  const label = data.label ?? "";
-  const shape: NodeShape = data.shape ?? "rectangle";
-
-  const w = typeof width === "number" ? width : 160;
-  const h = typeof height === "number" ? height : 80;
-
-  switch (shape) {
-    case "pill":
-      return <PillShape bg={bg} border={border} label={label} textColor={textColor} />;
-    case "circle":
-      return <CircleShape bg={bg} border={border} label={label} textColor={textColor} />;
-    case "diamond":
-      return <DiamondShape bg={bg} stroke={stroke} label={label} textColor={textColor} w={w} h={h} />;
-    case "hexagon":
-      return <HexagonShape bg={bg} stroke={stroke} label={label} textColor={textColor} w={w} h={h} />;
-    case "cylinder":
-      return <CylinderShape bg={bg} stroke={stroke} label={label} textColor={textColor} w={w} h={h} />;
-    case "rectangle":
-    default:
-      return <RectangleShape bg={bg} border={border} label={label} textColor={textColor} />;
-  }
-});

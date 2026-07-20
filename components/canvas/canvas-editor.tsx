@@ -32,10 +32,17 @@ function generateNodeId(shape: string): string {
   return `${shape}-${Date.now()}-${nodeCounter}`;
 }
 
-// Inner component has access to useReactFlow context
 function CanvasInner() {
   const { screenToFlowPosition, setNodes } = useReactFlow();
-  const { nodes, edges, onNodesChange, onEdgesChange } = useLiveblocksFlow({
+  
+  // 1. Destructure `onConnect` from the Liveblocks hook
+  const { 
+    nodes, 
+    edges, 
+    onNodesChange, 
+    onEdgesChange, 
+    onConnect 
+  } = useLiveblocksFlow({
     suspense: true,
   });
 
@@ -82,13 +89,12 @@ function CanvasInner() {
   );
 
   return (
-    // onDragOver + onDrop on the ReactFlow component directly —
-    // no extra blocking div, so nodes remain draggable
     <ReactFlow
       nodes={nodes}
       edges={edges}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
+      onConnect={onConnect} /* 2. Pass it to ReactFlow */
       nodeTypes={NODE_TYPES}
       edgeTypes={EDGE_TYPES}
       onDragOver={onDragOver}
