@@ -4,7 +4,6 @@ import { useCallback } from "react";
 import { 
   ReactFlow, 
   Background, 
-  Controls, 
   ConnectionMode, 
   MarkerType,
   useReactFlow,
@@ -14,6 +13,7 @@ import {
 import { CanvasNodeComponent } from "./canvas-node";
 import { CanvasEdgeComponent } from "./canvas-edge";
 import { ShapePanel } from "./shape-panel";
+import { CanvasControls } from "./canvas-control";
 import { useLiveblocksFlow } from "@/hooks/use-liveblocks-flow";
 import { DRAG_TYPE, type ShapeDragPayload } from "@/types/canvas";
 
@@ -120,7 +120,7 @@ export function CanvasEditor() {
         fitView
       >
         <Background color="#222" gap={16} />
-        <Controls />
+        <CanvasControls />
       </ReactFlow>
       <ShapePanel />
     </div>
