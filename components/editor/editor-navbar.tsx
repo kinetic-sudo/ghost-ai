@@ -66,11 +66,18 @@ export function EditorNavbar({
         {/* Right — actions */}
         <div className="flex items-center gap-2">
           {/* Templates Trigger */}
-          {onOpenTemplates && (
+          {(projectId || onOpenTemplates) && (
             <Button
               variant="outline"
               size="sm"
-              onClick={onOpenTemplates}
+              onClick={() => {
+                if (onOpenTemplates) {
+                  onOpenTemplates();
+                } else if (typeof window !== "undefined") {
+                  // Fire event to CanvasEditor if no direct prop is passed
+                  window.dispatchEvent(new CustomEvent("open-templates"));
+                }
+              }}
               className="h-8 gap-1.5 rounded-lg border-white/10 bg-white/[0.02] px-3 text-xs font-medium text-white/80 hover:bg-white/[0.06] hover:text-white transition-all"
             >
               <LayoutTemplate className="h-3.5 w-3.5 text-[#00E5FF]" />
