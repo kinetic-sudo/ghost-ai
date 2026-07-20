@@ -208,29 +208,25 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
         id="top" 
         type="source" 
         position={Position.Top} 
-        className="!opacity-0 group-hover:!opacity-100" 
-        style={{ width: 8, height: 8 }} 
+        className="!w-2.5 !h-2.5 !bg-white !border !border-neutral-900 !rounded-full !opacity-0 group-hover:!opacity-100 transition-opacity duration-150" 
       />
       <Handle 
         id="right" 
         type="source" 
         position={Position.Right} 
-        className="!opacity-0 group-hover:!opacity-100" 
-        style={{ width: 8, height: 8 }} 
+        className="!w-2.5 !h-2.5 !bg-white !border !border-neutral-900 !rounded-full !opacity-0 group-hover:!opacity-100 transition-opacity duration-150" 
       />
       <Handle 
         id="bottom" 
         type="source" 
         position={Position.Bottom} 
-        className="!opacity-0 group-hover:!opacity-100" 
-        style={{ width: 8, height: 8 }} 
+        className="!w-2.5 !h-2.5 !bg-white !border !border-neutral-900 !rounded-full !opacity-0 group-hover:!opacity-100 transition-opacity duration-150" 
       />
       <Handle 
         id="left" 
         type="source" 
         position={Position.Left} 
-        className="!opacity-0 group-hover:!opacity-100" 
-        style={{ width: 8, height: 8 }} 
+        className="!w-2.5 !h-2.5 !bg-white !border !border-neutral-900 !rounded-full !opacity-0 group-hover:!opacity-100 transition-opacity duration-150" 
       />
 
       {isEditing ? (
