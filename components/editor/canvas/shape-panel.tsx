@@ -16,7 +16,7 @@ import {
   type NodeShape,
   type ShapeDragPayload,
 } from "@/types/canvas";
-import { DragPreview } from "@/components/canvas/drag-preview";
+import { DragPreview } from "@/components/editor/canvas/drag-preview";
 
 const SHAPE_ICONS: Record<NodeShape, React.ElementType> = {
   rectangle: RectangleHorizontal,

@@ -7,7 +7,7 @@ import {
 } from "@liveblocks/react";
 import { ReactFlowProvider } from "@xyflow/react";
 
-import { CanvasEditor } from "@/components/canvas/canvas-editor";
+import { CanvasEditor } from "@/components/editor/canvas/canvas-editor";
 
 interface CanvasRoomProps {
   roomId: string;
