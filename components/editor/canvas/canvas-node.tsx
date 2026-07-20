@@ -19,7 +19,8 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   data,
   selected,
 }: NodeProps<CanvasNode>) {
-  const { deleteElements, updateNodeData } = useReactFlow();
+  // Extract setNodes and setEdges alongside deleteElements and updateNodeData
+  const { setNodes, setEdges, deleteElements, updateNodeData } = useReactFlow();
 
   const bgColor = data.color ?? DEFAULT_NODE_COLOR.fill;
   const textColor = data.textColor ?? DEFAULT_NODE_COLOR.text;
@@ -32,9 +33,15 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
     setLocalLabel(data.label || "");
   }, [data.label]);
 
+  // Robust deletion handler ensuring Liveblocks storage updates immediately
   const onDelete = useCallback(() => {
+    // 1. Remove node directly from state array
+    setNodes((nodes) => nodes.filter((node) => node.id !== id));
+    // 2. Clean up any edges connected to this node
+    setEdges((edges) => edges.filter((edge) => edge.source !== id && edge.target !== id));
+    // 3. Trigger standard React Flow delete invocation
     deleteElements({ nodes: [{ id }] });
-  }, [id, deleteElements]);
+  }, [id, setNodes, setEdges, deleteElements]);
 
   const onDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -120,7 +127,6 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   };
 
   return (
-    // 'group' class added here to enable 'group-hover' on the handles
     <div 
       onDoubleClick={onDoubleClick}
       className="group relative flex h-full w-full items-center justify-center pointer-events-auto"
@@ -132,7 +138,9 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
         className="flex items-center gap-1 rounded-md border border-white/[0.08] bg-[#111111]/90 p-1 shadow-xl backdrop-blur-md"
       >
         <button
+          type="button"
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation(); 
             onDelete();
           }}
@@ -162,7 +170,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
 
       {renderShape()}
 
-      {/* RESTORED: Explicit IDs required for React Flow edge connections */}
+      {/* Handles with explicit IDs for edge connections */}
       <Handle 
         id="top" 
         type="source" 
