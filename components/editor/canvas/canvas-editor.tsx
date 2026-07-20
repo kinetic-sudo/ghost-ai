@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { 
   ReactFlow, 
   Background, 
@@ -14,7 +14,6 @@ import { CanvasNodeComponent } from "./canvas-node";
 import { CanvasEdgeComponent } from "./canvas-edge";
 import { ShapePanel } from "./shape-panel";
 import { CanvasControls } from "./canvas-control";
-import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { StarterTemplatesModal } from "@/components/editor/starter-template-modal";
 import { type CanvasTemplate } from "@/components/editor/starter-template";
 import { useLiveblocksFlow } from "@/hooks/use-liveblocks-flow";
@@ -55,6 +54,13 @@ export function CanvasEditor() {
 
   const { screenToFlowPosition, fitView } = useReactFlow();
 
+  // Listen for the custom event dispatched from the layout EditorNavbar
+  useEffect(() => {
+    const handleOpenTemplates = () => setTemplatesOpen(true);
+    window.addEventListener("open-templates", handleOpenTemplates);
+    return () => window.removeEventListener("open-templates", handleOpenTemplates);
+  }, []);
+
   const handleConnect = useCallback(
     (params: Connection) => {
       onConnect({
@@ -68,11 +74,9 @@ export function CanvasEditor() {
 
   const handleImportTemplate = useCallback(
     (template: CanvasTemplate) => {
-      // Replace nodes & edges in collaborative Liveblocks storage
       setNodes(template.nodes);
       setEdges(template.edges);
 
-      // Fit view after template renders
       setTimeout(() => {
         fitView({ duration: 300 });
       }, 50);
@@ -123,7 +127,7 @@ export function CanvasEditor() {
 
   return (
     <div className="relative flex h-full w-full flex-col bg-[#0a0a0a]">
-      <EditorNavbar onOpenTemplates={() => setTemplatesOpen(true)} />
+      {/* Navbar Removed from here to prevent layout duplication */}
       <div className="relative flex-1">
         <ReactFlow
           nodes={nodes}
