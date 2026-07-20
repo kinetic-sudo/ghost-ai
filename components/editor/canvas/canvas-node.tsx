@@ -1,250 +1,220 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect, useCallback } from "react"
-import { Handle, Position, NodeResizer, NodeToolbar } from "@xyflow/react"
-import type { NodeProps } from "@xyflow/react"
-import { useMutation } from "@liveblocks/react"
-import { LiveObject } from "@liveblocks/client"
-import type { CanvasNode, NodeShape } from "@/types/canvas"
-import { NODE_COLORS } from "@/types/canvas"
+import { memo, useCallback, useState, useEffect } from "react";
+import { 
+  Handle, 
+  Position, 
+  NodeToolbar, 
+  NodeResizer,
+  useReactFlow, 
+  type NodeProps 
+} from "@xyflow/react";
+import { Trash2 } from "lucide-react";
 
-const DEFAULT_FILL = NODE_COLORS[0].fill
-const DEFAULT_TEXT = NODE_COLORS[0].text
-const BORDER_REST = "rgba(255,255,255,0.1)"
-const BORDER_SELECTED = "rgba(255,255,255,0.35)"
-const RESIZER_COLOR = "rgba(255,255,255,0.3)"
+import type { CanvasNode } from "@/types/canvas";
+import { DEFAULT_NODE_COLOR } from "@/types/canvas";
 
-const MIN_WIDTH = 60
-const MIN_HEIGHT = 40
+export const CanvasNodeComponent = memo(function CanvasNodeComponent({
+  id,
+  data,
+  selected,
+}: NodeProps<CanvasNode>) {
+  const { deleteElements, updateNodeData } = useReactFlow();
 
-const HANDLE_CLS =
-  "!h-2.5 !w-2.5 !rounded-full !border-2 !border-bg-base !bg-white opacity-0 transition-opacity group-hover/node:opacity-100"
+  const bgColor = data.color ?? DEFAULT_NODE_COLOR.fill;
+  const textColor = data.textColor ?? DEFAULT_NODE_COLOR.text;
+  const shape = data.shape ?? "rectangle";
 
-const RESIZER_HANDLE_STYLE: React.CSSProperties = {
-  width: 8,
-  height: 8,
-  borderRadius: "50%",
-  background: "rgba(255,255,255,0.55)",
-  border: "1px solid rgba(255,255,255,0.2)",
-}
-
-const RESIZER_LINE_STYLE: React.CSSProperties = {
-  borderColor: RESIZER_COLOR,
-  borderWidth: 1,
-}
-
-function DiamondShape({ fill, stroke }: { fill: string; stroke: string }) {
-  return (
-    <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-      <polygon points="50,0 100,50 50,100 0,50" fill={fill} stroke={stroke} strokeWidth="1.5" />
-    </svg>
-  )
-}
-
-function HexagonShape({ fill, stroke }: { fill: string; stroke: string }) {
-  return (
-    <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-      <polygon points="25,0 75,0 100,50 75,100 25,100 0,50" fill={fill} stroke={stroke} strokeWidth="1.5" />
-    </svg>
-  )
-}
-
-function CylinderShape({ fill, stroke }: { fill: string; stroke: string }) {
-  return (
-    <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-      <rect x="0" y="15" width="100" height="70" fill={fill} />
-      <line x1="0" y1="15" x2="0" y2="85" stroke={stroke} strokeWidth="1.5" />
-      <line x1="100" y1="15" x2="100" y2="85" stroke={stroke} strokeWidth="1.5" />
-      <ellipse cx="50" cy="85" rx="50" ry="15" fill={fill} stroke={stroke} strokeWidth="1.5" />
-      <ellipse cx="50" cy="15" rx="50" ry="15" fill={fill} stroke={stroke} strokeWidth="1.5" />
-    </svg>
-  )
-}
-
-function cssBorderRadius(shape: NodeShape): string {
-  if (shape === "pill") return "9999px"
-  if (shape === "circle") return "50%"
-  return "12px"
-}
-
-interface ColorSwatchProps {
-  pair: (typeof NODE_COLORS)[number]
-  isActive: boolean
-  onSelect: (fill: string, text: string) => void
-}
-
-function ColorSwatch({ pair, isActive, onSelect }: ColorSwatchProps) {
-  return (
-    <button
-      className="nodrag nopan"
-      style={{
-        width: 20,
-        height: 20,
-        borderRadius: "50%",
-        background: pair.fill,
-        border: isActive ? `2px solid ${pair.text}` : "2px solid rgba(255,255,255,0.12)",
-        cursor: "pointer",
-        flexShrink: 0,
-        outline: "none",
-        transition: "box-shadow 0.12s",
-      }}
-      onMouseEnter={(e) => {
-        ;(e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 5px 2px ${pair.text}55`
-      }}
-      onMouseLeave={(e) => {
-        ;(e.currentTarget as HTMLButtonElement).style.boxShadow = "none"
-      }}
-      onClick={(e) => {
-        e.stopPropagation()
-        onSelect(pair.fill, pair.text)
-      }}
-      onMouseDown={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
-    />
-  )
-}
-
-type LiveNodeData = LiveObject<{
-  data: LiveObject<{ label: string; color?: string; textColor?: string; shape?: NodeShape }>
-}>
-
-export function CanvasNodeComponent({ id, data, selected }: NodeProps<CanvasNode>) {
-  const fill = data.color ?? DEFAULT_FILL
-  const textColor = data.textColor ?? DEFAULT_TEXT
-  const shape = data.shape ?? "rectangle"
-  const stroke = selected ? BORDER_SELECTED : BORDER_REST
-  const isSvg = shape === "diamond" || shape === "hexagon" || shape === "cylinder"
-
-  const [isEditing, setIsEditing] = useState(false)
-  const editRef = useRef<HTMLDivElement>(null)
-
-  const updateNodeLabel = useMutation(({ storage }, newLabel: string) => {
-    const node = storage.get("flow").get("nodes").get(id)
-    if (!node) return
-    ;(node as unknown as LiveNodeData).get("data").set("label", newLabel)
-  }, [id])
-
-  const updateNodeColor = useMutation(({ storage }, colorFill: string, colorText: string) => {
-    const node = storage.get("flow").get("nodes").get(id)
-    if (!node) return
-    const liveData = (node as unknown as LiveNodeData).get("data")
-    liveData.set("color", colorFill)
-    liveData.set("textColor", colorText)
-  }, [id])
-
-  const startEditing = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    setIsEditing(true)
-  }, [])
-
-  const commitEdit = useCallback(() => {
-    const value = editRef.current?.textContent ?? ""
-    setIsEditing(false)
-    updateNodeLabel(value)
-  }, [updateNodeLabel])
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    e.stopPropagation()
-    if (e.key === "Escape" || e.key === "Enter") {
-      commitEdit()
-    }
-  }, [commitEdit])
+  const [isEditing, setIsEditing] = useState(false);
+  const [localLabel, setLocalLabel] = useState(data.label || "");
 
   useEffect(() => {
-    if (!isEditing || !editRef.current) return
-    const el = editRef.current
-    el.textContent = data.label ?? ""
-    el.focus()
-    const sel = window.getSelection()
-    if (sel) {
-      const range = document.createRange()
-      range.selectNodeContents(el)
-      sel.removeAllRanges()
-      sel.addRange(range)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditing])
+    setLocalLabel(data.label || "");
+  }, [data.label]);
 
-  const labelContent = (
-    <span
-      className={isSvg ? "relative z-10 truncate px-3" : "truncate px-3"}
-      style={{ color: textColor, visibility: isEditing ? "hidden" : "visible" }}
-    >
-      {data.label || <span style={{ opacity: 0.35 }}>Label</span>}
-    </span>
-  )
+  const onDelete = useCallback(() => {
+    deleteElements({ nodes: [{ id }] });
+  }, [id, deleteElements]);
+
+  const onDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditing(true);
+  }, []);
+
+  const onLabelChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newText = e.target.value;
+    setLocalLabel(newText);
+    updateNodeData(id, { label: newText });
+  }, [id, updateNodeData]);
+
+  const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Escape" || e.key === "Enter") {
+      e.preventDefault();
+      setIsEditing(false);
+    }
+  }, []);
+
+  const renderShape = () => {
+    const isSvg = ["diamond", "hexagon", "cylinder"].includes(shape);
+
+    if (!isSvg) {
+      let borderRadius = "0px";
+      if (shape === "pill" || shape === "circle") borderRadius = "9999px";
+
+      return (
+        <div
+          className="absolute inset-0 h-full w-full transition-all"
+          style={{
+            backgroundColor: bgColor,
+            borderRadius,
+            border: selected
+              ? "2px solid #00E5FF"
+              : "1px solid rgba(255,255,255,0.15)",
+            boxShadow: selected ? "0 0 0 2px rgba(0,229,255,0.2)" : "none",
+          }}
+        />
+      );
+    }
+
+    const strokeColor = selected ? "#00E5FF" : "rgba(255,255,255,0.15)";
+    const strokeWidth = selected ? "4" : "2";
+
+    const commonProps = {
+      fill: bgColor,
+      stroke: strokeColor,
+      strokeWidth,
+      vectorEffect: "non-scaling-stroke",
+      className: "transition-all duration-200",
+    };
+
+    let svgContent = null;
+    if (shape === "diamond") {
+      svgContent = (
+        <polygon points="50,0 100,50 50,100 0,50" {...commonProps} />
+      );
+    } else if (shape === "hexagon") {
+      svgContent = (
+        <polygon points="25,0 75,0 100,50 75,100 25,100 0,50" {...commonProps} />
+      );
+    } else if (shape === "cylinder") {
+      svgContent = (
+        <>
+          <path
+            d="M 0 15 L 0 85 A 50 15 0 0 0 100 85 L 100 15 A 50 15 0 0 1 0 15 Z"
+            {...commonProps}
+          />
+          <ellipse cx="50" cy="15" rx="50" ry="15" {...commonProps} />
+        </>
+      );
+    }
+
+    return (
+      <svg
+        className="absolute inset-0 h-full w-full overflow-visible"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+      >
+        {svgContent}
+      </svg>
+    );
+  };
 
   return (
-    <div
-      style={{ width: "100%", height: "100%" }}
-      className="group/node relative flex items-center justify-center text-sm font-medium"
-      onDoubleClick={startEditing}
+    // 'group' class added here to enable 'group-hover' on the handles
+    <div 
+      onDoubleClick={onDoubleClick}
+      className="group relative flex h-full w-full items-center justify-center pointer-events-auto"
     >
-      <NodeResizer
-        isVisible={selected ?? false}
-        color={RESIZER_COLOR}
-        minWidth={MIN_WIDTH}
-        minHeight={MIN_HEIGHT}
-        handleStyle={RESIZER_HANDLE_STYLE}
-        lineStyle={RESIZER_LINE_STYLE}
-      />
-
-      <NodeToolbar isVisible={selected ?? false} position={Position.Top}>
-        <div className="nodrag nopan flex items-center gap-1.5 rounded-full border border-border-default bg-bg-surface/95 px-2.5 py-1.5 shadow-xl backdrop-blur-xl">
-          {NODE_COLORS.map((pair) => (
-            <ColorSwatch
-              key={pair.fill}
-              pair={pair}
-              isActive={pair.fill === fill}
-              onSelect={updateNodeColor}
-            />
-          ))}
-        </div>
+      <NodeToolbar
+        isVisible={selected}
+        position={Position.Top}
+        offset={10}
+        className="flex items-center gap-1 rounded-md border border-white/[0.08] bg-[#111111]/90 p-1 shadow-xl backdrop-blur-md"
+      >
+        <button
+          onClick={(e) => {
+            e.stopPropagation(); 
+            onDelete();
+          }}
+          className="flex h-8 w-8 items-center justify-center rounded text-neutral-400 transition-colors hover:bg-red-500/20 hover:text-red-400"
+          title="Delete Shape"
+        >
+          <Trash2 className="size-4" />
+        </button>
       </NodeToolbar>
 
-      {isSvg ? (
-        <>
-          <div className="absolute inset-0">
-            {shape === "diamond" && <DiamondShape fill={fill} stroke={stroke} />}
-            {shape === "hexagon" && <HexagonShape fill={fill} stroke={stroke} />}
-            {shape === "cylinder" && <CylinderShape fill={fill} stroke={stroke} />}
-          </div>
-          {labelContent}
-        </>
-      ) : (
-        <div
-          style={{
-            background: fill,
-            borderRadius: cssBorderRadius(shape),
-            border: `1px solid ${stroke}`,
-            width: "100%",
-            height: "100%",
-          }}
-          className="flex items-center justify-center"
-        >
-          {labelContent}
-        </div>
-      )}
+      <NodeResizer
+        isVisible={selected}
+        minWidth={60}
+        minHeight={40}
+        handleStyle={{
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          background: "rgba(255,255,255,0.55)",
+          border: "1px solid rgba(255,255,255,0.2)",
+        }}
+        lineStyle={{
+          borderColor: "rgba(255,255,255,0.3)",
+          borderWidth: 1,
+        }}
+      />
 
-      {isEditing && (
-        <div
-          ref={editRef}
-          contentEditable
-          suppressContentEditableWarning
-          spellCheck={false}
-          className="nodrag nopan absolute inset-0 z-20 flex items-center justify-center text-center text-sm font-medium outline-none cursor-text"
-          style={{ color: textColor, wordBreak: "break-word", padding: "0 12px" }}
-          onBlur={commitEdit}
-          onKeyDown={handleKeyDown}
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
+      {renderShape()}
+
+      {/* RESTORED: Explicit IDs required for React Flow edge connections */}
+      <Handle 
+        id="top" 
+        type="source" 
+        position={Position.Top} 
+        className="!opacity-0 group-hover:!opacity-100" 
+        style={{ width: 8, height: 8 }} 
+      />
+      <Handle 
+        id="right" 
+        type="source" 
+        position={Position.Right} 
+        className="!opacity-0 group-hover:!opacity-100" 
+        style={{ width: 8, height: 8 }} 
+      />
+      <Handle 
+        id="bottom" 
+        type="source" 
+        position={Position.Bottom} 
+        className="!opacity-0 group-hover:!opacity-100" 
+        style={{ width: 8, height: 8 }} 
+      />
+      <Handle 
+        id="left" 
+        type="source" 
+        position={Position.Left} 
+        className="!opacity-0 group-hover:!opacity-100" 
+        style={{ width: 8, height: 8 }} 
+      />
+
+      {isEditing ? (
+        <textarea
+          value={localLabel}
+          onChange={onLabelChange}
+          onBlur={() => setIsEditing(false)}
+          onKeyDown={onKeyDown}
+          autoFocus
+          className="nodrag nopan relative z-20 w-[90%] resize-none overflow-hidden bg-transparent text-center text-sm font-medium outline-none"
+          style={{ color: textColor }}
+          rows={1}
+          placeholder="Label"
         />
+      ) : (
+        <span
+          className="relative z-10 truncate px-3 text-sm font-medium pointer-events-none"
+          style={{ 
+            color: textColor,
+            opacity: localLabel ? 1 : 0.35 
+          }}
+        >
+          {localLabel || "Label"}
+        </span>
       )}
-
-      <Handle id="top" type="source" position={Position.Top} className={HANDLE_CLS} />
-      <Handle id="bottom" type="source" position={Position.Bottom} className={HANDLE_CLS} />
-      <Handle id="left" type="source" position={Position.Left} className={HANDLE_CLS} />
-      <Handle id="right" type="source" position={Position.Right} className={HANDLE_CLS} />
     </div>
-  )
-}
+  );
+});
