@@ -27,6 +27,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - `13-shape-rendering` — Implemented proper CSS rendering (rectangle, pill, circle) and dynamic scalable SVG rendering (diamond, hexagon, cylinder). Native HTML5 drag preview ghosts fully functional and attached to cursor.
 - `14-node-editing` — Resizing support via `<NodeResizer>`, double-click inline label editing with `<textarea class="nodrag nopan">`, `onConnect` and `onDelete` passed from `useLiveblocksFlow` to `<ReactFlow>`, and explicit handle IDs (`top`, `right`, `bottom`, `left`) wired for edge creation and Liveblocks room storage node deletion.
 - `15-color-toolbar` — Floating node toolbar with predefined background and text color swatches (`NODE_COLORS`). Swatches feature active ring states and hover glowing effects matching text colors. Dragging and panning during toolbar interaction prevented via `nodrag nopan`. Node state updated real-time using `updateNodeData`.
+- `16-edge-behavior` — Custom right-angle edge renderer with arrow markers (`CanvasEdgeComponent`). Wide 20px hit-path for effortless edge selection. Connection handles on all 4 node sides fading in on hover with `ConnectionMode.Loose`. Double-click inline label editing powered by `EdgeLabelRenderer` and `getSmoothStepPath` midpoint coordinates. Auto-growing input with `nodrag nopan` and collaborative state synchronization via `useLiveblocksFlow`.
 
 ## In Progress
 
@@ -53,14 +54,15 @@ Update this file whenever the current phase, active feature, or implementation s
 - `useProjectActions` owns all mutations. Dialog state in `ProjectDialogsProvider` context. `activeProjectId` resolved via `usePathname()`.
 - `lib/project-access.ts` — `getAccessibleProject(roomId)` queries Prisma with OR: owner OR collaborator email.
 - Canvas architecture: `CanvasRoom` → `LiveblocksProvider` → `RoomProvider` → `ClientSideSuspense` → `CanvasEditor`. Workspace page stays server-side.
-- `useLiveblocksFlow({ suspense: true })` suspends until storage loads. Destructures `onConnect` and `onDelete` directly into `<ReactFlow>`.
-- `NODE_TYPES = { canvasNode: CanvasNodeComponent }` registered in `canvas-editor.tsx` — not in `types/canvas.ts` (avoids importing a client component into a shared types file).
+- `useLiveblocksFlow({ suspense: true })` hook wraps Liveblocks `useStorage` and `useMutation` to handle node/edge changes, connect actions, deletions, and setNodes/setEdges updates directly in room storage.
+- `NODE_TYPES = { canvasNode: CanvasNodeComponent }` and `EDGE_TYPES = { canvasEdge: CanvasEdgeComponent }` registered in `canvas-editor.tsx`.
 - Drag payload uses `DRAG_TYPE = "application/canvas-shape"` as the `dataTransfer` key. Payload shape: `{ shape, width, height }`.
 - Node ID format: `{shape}-{Date.now()}-{counter}` — monotonic session counter avoids ID collisions during rapid drops.
 - Drop position: `screenToFlowPosition({ x: clientX - width/2, y: clientY - height/2 })` — offsets by half the node size so the drop lands centered under the cursor.
 - `CanvasNodeComponent` utilizes separate handlers for traditional CSS-styled primitives and vector-scalable SVG geometries. Drag images rely on HTML5 `setDragImage()` referencing off-screen transient DOM objects to generate native cursors.
-- Node handles require explicit string `id` attributes (`top`, `right`, `bottom`, `left`) when multiple handles exist on a node so React Flow can resolve target/source edge connections correctly.
-- Inline textarea editing and color swatches rely on `nodrag nopan` utility classes to avoid triggering canvas pan/zoom or node dragging while interacting with toolbar elements.
+- Connection handles use explicit string `id` attributes (`top`, `right`, `bottom`, `left`) with `ConnectionMode.Loose` to allow any-handle-to-any-handle connections across nodes.
+- `CanvasEdgeComponent` renders an invisible 20px hit path for easy mouse target selection and positions interactive label overlays via `EdgeLabelRenderer` and `getSmoothStepPath` coordinates.
+- Inline textarea/input editing and floating toolbars rely on `nodrag nopan` utility classes to prevent canvas panning/zooming or node dragging during text editing or color selection.
 
 ## Session Notes
 
@@ -94,3 +96,9 @@ Update this file whenever the current phase, active feature, or implementation s
   - Swatch interaction updates both background (`color`) and matching `textColor` dynamically via `updateNodeData`.
   - Active color swatches display highlighted outline rings; hover interactions show a glow effect matching the swatch text color.
   - Applied `nodrag nopan` classes across the toolbar to prevent dragging nodes or panning canvas when changing color options.
+- **2026-07-20 — Custom canvas edges & Liveblocks hook (`16-edge-behavior`)**
+  - Created `hooks/use-liveblocks-flow.ts` to connect React Flow actions (`onNodesChange`, `onEdgesChange`, `onConnect`, `onDelete`, `setNodes`, `setEdges`) directly to Liveblocks room storage mutations.
+  - Built `CanvasEdgeComponent` utilizing `getSmoothStepPath` right-angle routing, closed arrowhead markers, and `#00E5FF` hover/selection highlights.
+  - Added wide 20px hit-path to ensure smooth edge hovering and double-clicking.
+  - Integrated connection handles on all 4 node sides fading in on hover with `ConnectionMode.Loose`.
+  - Implemented inline edge label editing via `EdgeLabelRenderer` placed at midpoint coordinates, featuring auto-scaling inputs, pill badge renders, faint "+ Label" active hints, and `nodrag nopan` canvas isolation.
