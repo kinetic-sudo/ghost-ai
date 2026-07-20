@@ -28,6 +28,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - `14-node-editing` — Resizing support via `<NodeResizer>`, double-click inline label editing with `<textarea class="nodrag nopan">`, `onConnect` and `onDelete` passed from `useLiveblocksFlow` to `<ReactFlow>`, and explicit handle IDs (`top`, `right`, `bottom`, `left`) wired for edge creation and Liveblocks room storage node deletion.
 - `15-color-toolbar` — Floating node toolbar with predefined background and text color swatches (`NODE_COLORS`). Swatches feature active ring states and hover glowing effects matching text colors. Dragging and panning during toolbar interaction prevented via `nodrag nopan`. Node state updated real-time using `updateNodeData`.
 - `16-edge-behavior` — Custom right-angle edge renderer with arrow markers (`CanvasEdgeComponent`). Wide 20px hit-path for effortless edge selection. Connection handles on all 4 node sides fading in on hover with `ConnectionMode.Loose`. Double-click inline label editing powered by `EdgeLabelRenderer` and `getSmoothStepPath` midpoint coordinates. Auto-growing input with `nodrag nopan` and collaborative state synchronization via `useLiveblocksFlow`.
+- `17-canvas-controls` — Added pill-shaped control bar at bottom-left (`CanvasControls`) containing animated zoom controls (`zoomIn`, `zoomOut`, `fitView`) and Liveblocks history controls (`useUndo`, `useRedo`, `useCanUndo`, `useCanRedo`). Built `useKeyboardShortcuts` hook to handle `+`/`=` (zoom in), `-` (zoom out), `Cmd/Ctrl+Z` (undo), and `Cmd/Ctrl+Shift+Z` / `Cmd/Ctrl+Y` (redo), automatically skipping trigger events when focused on editable input fields or textareas.
 
 ## In Progress
 
@@ -63,6 +64,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - Connection handles use explicit string `id` attributes (`top`, `right`, `bottom`, `left`) with `ConnectionMode.Loose` to allow any-handle-to-any-handle connections across nodes.
 - `CanvasEdgeComponent` renders an invisible 20px hit path for easy mouse target selection and positions interactive label overlays via `EdgeLabelRenderer` and `getSmoothStepPath` coordinates.
 - Inline textarea/input editing and floating toolbars rely on `nodrag nopan` utility classes to prevent canvas panning/zooming or node dragging during text editing or color selection.
+- `useKeyboardShortcuts` isolates window keyboard listeners from firing shortcuts when focus is inside HTML `<input>`, `<textarea>`, or `isContentEditable` nodes.
 
 ## Session Notes
 
@@ -102,3 +104,7 @@ Update this file whenever the current phase, active feature, or implementation s
   - Added wide 20px hit-path to ensure smooth edge hovering and double-clicking.
   - Integrated connection handles on all 4 node sides fading in on hover with `ConnectionMode.Loose`.
   - Implemented inline edge label editing via `EdgeLabelRenderer` placed at midpoint coordinates, featuring auto-scaling inputs, pill badge renders, faint "+ Label" active hints, and `nodrag nopan` canvas isolation.
+- **2026-07-20 — Canvas controls & keyboard shortcuts (`17-canvas-controls`)**
+  - Created `hooks/use-keyboard-shortcuts.ts` to handle shortcut keydown listeners for zooming (`+`/`=`, `-`) and history undo/redo (`Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z`, `Cmd/Ctrl+Y`). Added check preventing activation during active text input editing.
+  - Created `components/canvas/canvas-controls.tsx` floating control bar at bottom-left of the canvas. Grouped smooth-animated zoom buttons and Liveblocks undo/redo buttons with visual disable states (`opacity-30 pointer-events-none`).
+  - Integrated `CanvasControls` inside `CanvasEditor`.
