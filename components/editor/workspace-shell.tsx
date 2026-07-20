@@ -30,14 +30,14 @@ export function WorkspaceShell({ projectId, projectName }: WorkspaceShellProps) 
             {projectName}
           </h1>
           <div className="flex items-center gap-2">
-            <Button
+            {/* <Button
               variant="ghost"
               size="sm"
               onClick={() => setShareOpen(true)}
               className="h-8 gap-1.5 text-white/50 hover:text-white bg-white/[0.03] hover:bg-white/[0.08] rounded-lg"
             >
               Share
-            </Button>
+            </Button> */}
             <Button
               variant="ghost"
               size="icon"

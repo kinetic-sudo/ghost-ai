@@ -2,25 +2,27 @@
 
 import { useState } from "react";
 import { UserButton } from "@clerk/nextjs";
-import { PanelLeftClose, PanelLeftOpen, Share2, Sparkles } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Share2, Sparkles, LayoutTemplate } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ShareDialog } from "@/components/editor/share-dialog";
 import { cn } from "@/lib/utils";
 
 interface EditorNavbarProps {
-  isSidebarOpen: boolean;
-  onSidebarToggle: () => void;
-  projectName: string;
+  isSidebarOpen?: boolean;
+  onSidebarToggle?: () => void;
+  projectName?: string;
   projectId?: string;   // present on workspace pages, absent on /editor home
+  onOpenTemplates?: () => void;
   className?: string;
 }
 
 export function EditorNavbar({
-  isSidebarOpen,
+  isSidebarOpen = false,
   onSidebarToggle,
-  projectName,
+  projectName = "Untitled Workspace",
   projectId,
+  onOpenTemplates,
   className,
 }: EditorNavbarProps) {
   const [shareOpen, setShareOpen] = useState(false);
@@ -35,19 +37,21 @@ export function EditorNavbar({
       >
         {/* Left — toggle + project name */}
         <div className="flex items-center gap-3.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onSidebarToggle}
-            aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
-            className="h-8 w-8 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-          >
-            {isSidebarOpen ? (
-              <PanelLeftClose className="h-5 w-5" />
-            ) : (
-              <PanelLeftOpen className="h-5 w-5" />
-            )}
-          </Button>
+          {onSidebarToggle && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onSidebarToggle}
+              aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
+              className="h-8 w-8 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+            >
+              {isSidebarOpen ? (
+                <PanelLeftClose className="h-5 w-5" />
+              ) : (
+                <PanelLeftOpen className="h-5 w-5" />
+              )}
+            </Button>
+          )}
 
           <div className="flex flex-col justify-center select-none">
             <span className="text-sm font-semibold text-white tracking-tight leading-tight truncate max-w-[300px]">
@@ -61,6 +65,26 @@ export function EditorNavbar({
 
         {/* Right — actions */}
         <div className="flex items-center gap-2">
+          {/* Templates Trigger */}
+          {(projectId || onOpenTemplates) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (onOpenTemplates) {
+                  onOpenTemplates();
+                } else if (typeof window !== "undefined") {
+                  // Fire event to CanvasEditor if no direct prop is passed
+                  window.dispatchEvent(new CustomEvent("open-templates"));
+                }
+              }}
+              className="h-8 gap-1.5 rounded-lg border-white/10 bg-white/[0.02] px-3 text-xs font-medium text-white/80 hover:bg-white/[0.06] hover:text-white transition-all"
+            >
+              <LayoutTemplate className="h-3.5 w-3.5 text-[#00E5FF]" />
+              <span className="hidden sm:inline">Templates</span>
+            </Button>
+          )}
+
           {/* Share — only shown on workspace pages */}
           {projectId && (
             <Button
