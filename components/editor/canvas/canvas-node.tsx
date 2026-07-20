@@ -12,14 +12,15 @@ import {
 import { Trash2 } from "lucide-react";
 
 import type { CanvasNode } from "@/types/canvas";
-import { DEFAULT_NODE_COLOR } from "@/types/canvas";
+import { DEFAULT_NODE_COLOR, NODE_COLORS } from "@/types/canvas";
+import { cn } from "@/lib/utils";
 
 export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   id,
   data,
   selected,
 }: NodeProps<CanvasNode>) {
-  const { deleteElements, updateNodeData } = useReactFlow();
+  const { setNodes, setEdges, deleteElements, updateNodeData } = useReactFlow();
 
   const bgColor = data.color ?? DEFAULT_NODE_COLOR.fill;
   const textColor = data.textColor ?? DEFAULT_NODE_COLOR.text;
@@ -33,8 +34,10 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   }, [data.label]);
 
   const onDelete = useCallback(() => {
+    setNodes((nodes) => nodes.filter((node) => node.id !== id));
+    setEdges((edges) => edges.filter((edge) => edge.source !== id && edge.target !== id));
     deleteElements({ nodes: [{ id }] });
-  }, [id, deleteElements]);
+  }, [id, setNodes, setEdges, deleteElements]);
 
   const onDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -63,7 +66,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
 
       return (
         <div
-          className="absolute inset-0 h-full w-full transition-all"
+          className="absolute inset-0 h-full w-full transition-all duration-200"
           style={{
             backgroundColor: bgColor,
             borderRadius,
@@ -124,22 +127,60 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
       onDoubleClick={onDoubleClick}
       className="group relative flex h-full w-full items-center justify-center pointer-events-auto"
     >
+      {/* Floating Toolbar with Color Swatches & Delete Action */}
       <NodeToolbar
         isVisible={selected}
         position={Position.Top}
-        offset={10}
-        className="flex items-center gap-1 rounded-md border border-white/[0.08] bg-[#111111]/90 p-1 shadow-xl backdrop-blur-md"
+        offset={12}
+        className="nodrag nopan flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#141414]/95 p-1.5 shadow-2xl backdrop-blur-md"
       >
+        <div className="flex items-center gap-2.5 border-r border-white/10 pr-1.5">
+          {NODE_COLORS.map((colorOption) => {
+            const isSelected =
+              (data.color === colorOption.fill || (!data.color && colorOption.fill === DEFAULT_NODE_COLOR.fill)) &&
+              (data.textColor === colorOption.text || (!data.textColor && colorOption.text === DEFAULT_NODE_COLOR.text));
+
+            return (
+              <button
+                key={colorOption.name}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updateNodeData(id, {
+                    color: colorOption.fill,
+                    textColor: colorOption.text,
+                  });
+                }}
+                style={
+                  {
+                    backgroundColor: colorOption.fill,
+                    borderColor: colorOption.text,
+                    "--glow-color": colorOption.text,
+                  } as React.CSSProperties
+                }
+                className={cn(
+                  "relative h-5 w-5 rounded-full border border-white/20 transition-all duration-150 hover:scale-110 hover:shadow-[0_0_8px_var(--glow-color)]",
+                  isSelected
+                    ? "scale-105 ring-2 ring-white ring-offset-1 ring-offset-[#141414]"
+                    : "opacity-80 hover:opacity-100"
+                )}
+                title={colorOption.name}
+              />
+            );
+          })}
+        </div>
+
         <button
           type="button"
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation(); 
             onDelete();
           }}
-          className="flex h-8 w-8 items-center justify-center rounded text-neutral-400 transition-colors hover:bg-red-500/20 hover:text-red-400"
+          className="flex h-6 w-6 items-center justify-center rounded text-neutral-400 transition-colors hover:bg-red-500/20 hover:text-red-400"
           title="Delete Shape"
         >
-          <Trash2 className="size-4" />
+          <Trash2 className="size-3.5" />
         </button>
       </NodeToolbar>
 
@@ -167,29 +208,25 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
         id="top" 
         type="source" 
         position={Position.Top} 
-        className="!opacity-0 group-hover:!opacity-100" 
-        style={{ width: 8, height: 8 }} 
+        className="!w-2.5 !h-2.5 !bg-white !border !border-neutral-900 !rounded-full !opacity-0 group-hover:!opacity-100 transition-opacity duration-150" 
       />
       <Handle 
         id="right" 
         type="source" 
         position={Position.Right} 
-        className="!opacity-0 group-hover:!opacity-100" 
-        style={{ width: 8, height: 8 }} 
+        className="!w-2.5 !h-2.5 !bg-white !border !border-neutral-900 !rounded-full !opacity-0 group-hover:!opacity-100 transition-opacity duration-150" 
       />
       <Handle 
         id="bottom" 
         type="source" 
         position={Position.Bottom} 
-        className="!opacity-0 group-hover:!opacity-100" 
-        style={{ width: 8, height: 8 }} 
+        className="!w-2.5 !h-2.5 !bg-white !border !border-neutral-900 !rounded-full !opacity-0 group-hover:!opacity-100 transition-opacity duration-150" 
       />
       <Handle 
         id="left" 
         type="source" 
         position={Position.Left} 
-        className="!opacity-0 group-hover:!opacity-100" 
-        style={{ width: 8, height: 8 }} 
+        className="!w-2.5 !h-2.5 !bg-white !border !border-neutral-900 !rounded-full !opacity-0 group-hover:!opacity-100 transition-opacity duration-150" 
       />
 
       {isEditing ? (
@@ -206,7 +243,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
         />
       ) : (
         <span
-          className="relative z-10 truncate px-3 text-sm font-medium pointer-events-none"
+          className="relative z-10 truncate px-3 text-sm font-medium pointer-events-none transition-colors duration-200"
           style={{ 
             color: textColor,
             opacity: localLabel ? 1 : 0.35 

@@ -1,51 +1,65 @@
 "use client";
 
 import { useCallback } from "react";
-import {
-  ReactFlow,
-  Background,
-  BackgroundVariant,
-  MiniMap,
-  ConnectionMode,
+import { 
+  ReactFlow, 
+  Background, 
+  Controls, 
+  ConnectionMode, 
+  MarkerType,
   useReactFlow,
-  type Node,
+  type Connection 
 } from "@xyflow/react";
-import { useLiveblocksFlow } from "@liveblocks/react-flow";
 
-import "@xyflow/react/dist/style.css";
+import { CanvasNodeComponent } from "./canvas-node";
+import { CanvasEdgeComponent } from "./canvas-edge";
+import { ShapePanel } from "./shape-panel";
+import { useLiveblocksFlow } from "@/hooks/use-liveblocks-flow";
+import { DRAG_TYPE, type ShapeDragPayload } from "@/types/canvas";
 
-import {
-  DRAG_TYPE,
-  DEFAULT_NODE_COLOR,
-  type ShapeDragPayload,
-  type CanvasNode,
-} from "@/types/canvas";
-import { CanvasNodeComponent } from "@/components/editor/canvas/canvas-node";
-import { ShapePanel } from "@/components/editor/canvas/shape-panel";
+const NODE_TYPES = {
+  canvasNode: CanvasNodeComponent,
+};
 
-const NODE_TYPES = { canvasNode: CanvasNodeComponent } as const;
-const EDGE_TYPES = {} as const;
+const EDGE_TYPES = {
+  canvasEdge: CanvasEdgeComponent,
+};
 
-let nodeCounter = 0;
-function generateNodeId(shape: string): string {
-  nodeCounter += 1;
-  return `${shape}-${Date.now()}-${nodeCounter}`;
-}
+const DEFAULT_EDGE_OPTIONS = {
+  type: "canvasEdge",
+  markerEnd: {
+    type: MarkerType.ArrowClosed,
+    width: 14,
+    height: 14,
+    color: "rgba(255, 255, 255, 0.4)",
+  },
+};
 
-function CanvasInner() {
-  const { screenToFlowPosition, setNodes } = useReactFlow();
-  
-  // 1. Destructure `onDelete` from Liveblocks
+let idCounter = 0;
+
+export function CanvasEditor() {
   const { 
     nodes, 
     edges, 
     onNodesChange, 
     onEdgesChange, 
-    onConnect,
+    onConnect, 
     onDelete, 
-  } = useLiveblocksFlow({
-    suspense: true,
-  });
+    setNodes 
+  } = useLiveblocksFlow({ suspense: true });
+
+  const { screenToFlowPosition } = useReactFlow();
+
+  const handleConnect = useCallback(
+    (params: Connection) => {
+      onConnect({
+        ...params,
+        type: "canvasEdge",
+        markerEnd: DEFAULT_EDGE_OPTIONS.markerEnd,
+      });
+    },
+    [onConnect]
+  );
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -55,76 +69,59 @@ function CanvasInner() {
   const onDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
-      const raw = e.dataTransfer.getData(DRAG_TYPE);
-      if (!raw) return;
 
-      let payload: ShapeDragPayload;
+      const rawData = e.dataTransfer.getData(DRAG_TYPE);
+      if (!rawData) return;
+
       try {
-        payload = JSON.parse(raw) as ShapeDragPayload;
-      } catch {
-        return;
+        const payload: ShapeDragPayload = JSON.parse(rawData);
+        const position = screenToFlowPosition({
+          x: e.clientX - payload.width / 2,
+          y: e.clientY - payload.height / 2,
+        });
+
+        const newNode = {
+          id: `${payload.shape}-${Date.now()}-${++idCounter}`,
+          type: "canvasNode",
+          position,
+          data: {
+            label: "",
+            shape: payload.shape,
+          },
+          style: {
+            width: payload.width,
+            height: payload.height,
+          },
+        };
+
+        setNodes((nds) => nds.concat(newNode));
+      } catch (err) {
+        console.error("Failed to parse shape drop payload", err);
       }
-
-      const canvasPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-      const position = {
-        x: canvasPos.x - payload.width / 2,
-        y: canvasPos.y - payload.height / 2,
-      };
-
-      const newNode: CanvasNode = {
-        id: generateNodeId(payload.shape),
-        type: "canvasNode",
-        position,
-        style: { width: payload.width, height: payload.height },
-        data: {
-          label: "",
-          shape: payload.shape,
-          color: DEFAULT_NODE_COLOR.fill,
-          textColor: DEFAULT_NODE_COLOR.text,
-        },
-      };
-
-      setNodes((prev: Node[]) => [...prev, newNode]);
     },
-    [screenToFlowPosition, setNodes],
+    [screenToFlowPosition, setNodes]
   );
 
   return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
-      onConnect={onConnect}
-      onDelete={onDelete} /* 2. Pass onDelete to ReactFlow */
-      nodeTypes={NODE_TYPES}
-      edgeTypes={EDGE_TYPES}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      connectionMode={ConnectionMode.Loose}
-      fitView
-      proOptions={{ hideAttribution: true }}
-      style={{ background: "transparent" }}
-    >
-      <Background
-        variant={BackgroundVariant.Dots}
-        gap={24}
-        size={1}
-        color="rgba(255,255,255,0.08)"
-      />
-      <MiniMap
-        nodeColor="rgba(255,255,255,0.1)"
-        maskColor="rgba(0,0,0,0.6)"
-        className="!border-white/[0.06] !bg-[#111111]"
-      />
-    </ReactFlow>
-  );
-}
-
-export function CanvasEditor() {
-  return (
-    <div className="relative h-full w-full">
-      <CanvasInner />
+    <div className="relative h-full w-full bg-[#0a0a0a]">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={handleConnect}
+        onDelete={onDelete}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
+        nodeTypes={NODE_TYPES}
+        edgeTypes={EDGE_TYPES}
+        connectionMode={ConnectionMode.Loose}
+        defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
+        fitView
+      >
+        <Background color="#222" gap={16} />
+        <Controls />
+      </ReactFlow>
       <ShapePanel />
     </div>
   );

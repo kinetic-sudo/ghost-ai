@@ -34,7 +34,8 @@ function ShapeButton({ shape }: { shape: NodeShape }) {
     const payload: ShapeDragPayload = { shape, ...SHAPE_DEFAULTS[shape] };
     e.dataTransfer.setData(DRAG_TYPE, JSON.stringify(payload));
     e.dataTransfer.effectAllowed = "copy";
-    // Suppress the browser's default drag image (we render our own ghost)
+    
+    // Suppress the browser's default drag image (we render our own ghost preview)
     const blank = document.createElement("div");
     blank.style.width = "1px";
     blank.style.height = "1px";
@@ -49,7 +50,6 @@ function ShapeButton({ shape }: { shape: NodeShape }) {
     <button
       draggable
       onDragStart={onDragStart}
-      // data-shape is a fallback for browsers that return "" from getData during dragstart
       data-shape={shape}
       title={shape.charAt(0).toUpperCase() + shape.slice(1)}
       className="flex h-9 w-9 cursor-grab items-center justify-center rounded-lg text-white/40 transition-all hover:bg-white/[0.06] hover:text-white active:cursor-grabbing active:scale-95"
@@ -59,7 +59,11 @@ function ShapeButton({ shape }: { shape: NodeShape }) {
   );
 }
 
-export function ShapePanel() {
+interface ShapePanelProps {
+  setNodes?: React.Dispatch<React.SetStateAction<any[]>>;
+}
+
+export function ShapePanel({ setNodes }: ShapePanelProps = {}) {
   return (
     <>
       {/* Ghost preview — renders in a portal over everything */}
