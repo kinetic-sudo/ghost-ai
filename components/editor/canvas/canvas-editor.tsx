@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 import {
   ReactFlow,
   Background,
@@ -35,13 +35,14 @@ function generateNodeId(shape: string): string {
 function CanvasInner() {
   const { screenToFlowPosition, setNodes } = useReactFlow();
   
-  // 1. Destructure `onConnect` from the Liveblocks hook
+  // 1. Destructure `onDelete` from Liveblocks
   const { 
     nodes, 
     edges, 
     onNodesChange, 
     onEdgesChange, 
-    onConnect 
+    onConnect,
+    onDelete, 
   } = useLiveblocksFlow({
     suspense: true,
   });
@@ -94,7 +95,8 @@ function CanvasInner() {
       edges={edges}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
-      onConnect={onConnect} /* 2. Pass it to ReactFlow */
+      onConnect={onConnect}
+      onDelete={onDelete} /* 2. Pass onDelete to ReactFlow */
       nodeTypes={NODE_TYPES}
       edgeTypes={EDGE_TYPES}
       onDragOver={onDragOver}
