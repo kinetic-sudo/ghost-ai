@@ -13,7 +13,7 @@ import {
 import { CanvasNodeComponent } from "./canvas-node";
 import { CanvasEdgeComponent } from "./canvas-edge";
 import { ShapePanel } from "./shape-panel";
-import { CanvasControls } from "./canvas-controls";
+import { CanvasControls } from "./canvas-control";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { StarterTemplatesModal } from "@/components/editor/starter-template-modal";
 import { type CanvasTemplate } from "@/components/editor/starter-template";
