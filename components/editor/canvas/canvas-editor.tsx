@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { 
   ReactFlow, 
   Background, 
@@ -13,7 +13,10 @@ import {
 import { CanvasNodeComponent } from "./canvas-node";
 import { CanvasEdgeComponent } from "./canvas-edge";
 import { ShapePanel } from "./shape-panel";
-import { CanvasControls } from "./canvas-control";
+import { CanvasControls } from "./canvas-controls";
+import { EditorNavbar } from "@/components/editor/editor-navbar";
+import { StarterTemplatesModal } from "@/components/editor/starter-template-modal";
+import { type CanvasTemplate } from "@/components/editor/starter-template";
 import { useLiveblocksFlow } from "@/hooks/use-liveblocks-flow";
 import { DRAG_TYPE, type ShapeDragPayload } from "@/types/canvas";
 
@@ -38,6 +41,7 @@ const DEFAULT_EDGE_OPTIONS = {
 let idCounter = 0;
 
 export function CanvasEditor() {
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const { 
     nodes, 
     edges, 
@@ -45,10 +49,11 @@ export function CanvasEditor() {
     onEdgesChange, 
     onConnect, 
     onDelete, 
-    setNodes 
+    setNodes,
+    setEdges,
   } = useLiveblocksFlow({ suspense: true });
 
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, fitView } = useReactFlow();
 
   const handleConnect = useCallback(
     (params: Connection) => {
@@ -59,6 +64,20 @@ export function CanvasEditor() {
       });
     },
     [onConnect]
+  );
+
+  const handleImportTemplate = useCallback(
+    (template: CanvasTemplate) => {
+      // Replace nodes & edges in collaborative Liveblocks storage
+      setNodes(template.nodes);
+      setEdges(template.edges);
+
+      // Fit view after template renders
+      setTimeout(() => {
+        fitView({ duration: 300 });
+      }, 50);
+    },
+    [setNodes, setEdges, fitView]
   );
 
   const onDragOver = useCallback((e: React.DragEvent) => {
@@ -103,26 +122,35 @@ export function CanvasEditor() {
   );
 
   return (
-    <div className="relative h-full w-full bg-[#0a0a0a]">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={handleConnect}
-        onDelete={onDelete}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
-        nodeTypes={NODE_TYPES}
-        edgeTypes={EDGE_TYPES}
-        connectionMode={ConnectionMode.Loose}
-        defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
-        fitView
-      >
-        <Background color="#222" gap={16} />
-        <CanvasControls />
-      </ReactFlow>
-      <ShapePanel />
+    <div className="relative flex h-full w-full flex-col bg-[#0a0a0a]">
+      <EditorNavbar onOpenTemplates={() => setTemplatesOpen(true)} />
+      <div className="relative flex-1">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={handleConnect}
+          onDelete={onDelete}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+          nodeTypes={NODE_TYPES}
+          edgeTypes={EDGE_TYPES}
+          connectionMode={ConnectionMode.Loose}
+          defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
+          fitView
+        >
+          <Background color="#222" gap={16} />
+          <CanvasControls />
+        </ReactFlow>
+        <ShapePanel />
+      </div>
+
+      <StarterTemplatesModal
+        open={templatesOpen}
+        onOpenChange={setTemplatesOpen}
+        onImport={handleImportTemplate}
+      />
     </div>
   );
 }
