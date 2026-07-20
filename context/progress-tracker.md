@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Shape panel live. Ready for presence UI, custom node visuals, and AI sidebar.
+- Ready for presence UI (live cursors, user avatars) and AI sidebar implementation.
 
 ## Completed
 
@@ -25,6 +25,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - `11-base-canvas` — `types/canvas.ts`, `canvas-room.tsx`, `canvas-editor.tsx`, `WorkspaceShell` updated to render CanvasRoom.
 - `12-shape-panel` — Floating shape toolbar, drag payload, drop handler, `CanvasNodeComponent` basic renderer, `types/canvas.ts` extended with `DRAG_TYPE`, `ShapeDragPayload`, `DEFAULT_NODE_COLOR`.
 - `13-shape-rendering` — Implemented proper CSS rendering (rectangle, pill, circle) and dynamic scalable SVG rendering (diamond, hexagon, cylinder). Native HTML5 drag preview ghosts fully functional and attached to cursor.
+- `14-node-editing` — Resizing support via `<NodeResizer>`, double-click inline label editing with `<textarea class="nodrag nopan">`, `onConnect` and `onDelete` passed from `useLiveblocksFlow` to `<ReactFlow>`, and explicit handle IDs (`top`, `right`, `bottom`, `left`) wired for edge creation and Liveblocks room storage node deletion.
 
 ## In Progress
 
@@ -51,12 +52,14 @@ Update this file whenever the current phase, active feature, or implementation s
 - `useProjectActions` owns all mutations. Dialog state in `ProjectDialogsProvider` context. `activeProjectId` resolved via `usePathname()`.
 - `lib/project-access.ts` — `getAccessibleProject(roomId)` queries Prisma with OR: owner OR collaborator email.
 - Canvas architecture: `CanvasRoom` → `LiveblocksProvider` → `RoomProvider` → `ClientSideSuspense` → `CanvasEditor`. Workspace page stays server-side.
-- `useLiveblocksFlow({ suspense: true })` suspends until storage loads. `setNodes` used directly for drop-created nodes.
+- `useLiveblocksFlow({ suspense: true })` suspends until storage loads. Destructures `onConnect` and `onDelete` directly into `<ReactFlow>`.
 - `NODE_TYPES = { canvasNode: CanvasNodeComponent }` registered in `canvas-editor.tsx` — not in `types/canvas.ts` (avoids importing a client component into a shared types file).
 - Drag payload uses `DRAG_TYPE = "application/canvas-shape"` as the `dataTransfer` key. Payload shape: `{ shape, width, height }`.
 - Node ID format: `{shape}-{Date.now()}-{counter}` — monotonic session counter avoids ID collisions during rapid drops.
 - Drop position: `screenToFlowPosition({ x: clientX - width/2, y: clientY - height/2 })` — offsets by half the node size so the drop lands centered under the cursor.
 - `CanvasNodeComponent` utilizes separate handlers for traditional CSS-styled primitives and vector-scalable SVG geometries. Drag images rely on HTML5 `setDragImage()` referencing off-screen transient DOM objects to generate native cursors.
+- Node handles require explicit string `id` attributes (`top`, `right`, `bottom`, `left`) when multiple handles exist on a node so React Flow can resolve target/source edge connections correctly.
+- Inline textarea editing relies on `nodrag nopan` utility classes to avoid triggering canvas pan/zoom or node dragging while typing.
 
 ## Session Notes
 
@@ -79,3 +82,9 @@ Update this file whenever the current phase, active feature, or implementation s
 - **2026-07-19 — Shape rendering (`13-shape-rendering`)**
   - Updated `components/canvas/canvas-node.tsx` to handle distinct logic sets dividing scalable SVG elements and basic CSS geometry.
   - Implemented dynamic off-screen DOM injection with HTML5 `setDragImage()` in `components/canvas/shape-panel.tsx` to securely track visual proxies matching drop-scale sizing directly to the user drag action natively.
+- **2026-07-20 — Node editing, connections & deletion fix (`14-node-editing`)**
+  - Integrated `<NodeResizer>` with subtle handles for scaling controls.
+  - Added double-click event listener to trigger inline label editing via centered `<textarea>` with `nodrag nopan` styling.
+  - Synchronized text modifications live with `updateNodeData`.
+  - Passed `onConnect` and `onDelete` directly from `useLiveblocksFlow` to `<ReactFlow>` to persist edge connections and shape deletions into Liveblocks room storage.
+  - Assigned explicit `id` parameters (`top`, `right`, `bottom`, `left`) to `<Handle>` elements to restore proper edge connections.
