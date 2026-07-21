@@ -1,51 +1,66 @@
-"use client";
+"use client"
 
-import { useOthers } from "@liveblocks/react/suspense";
+import { useRef } from "react"
+import { useOthers } from "@liveblocks/react"
+import { useReactFlow, useViewport } from "@xyflow/react"
+import { Loader2 } from "lucide-react"
 
 export function LiveCursors() {
-  const others = useOthers();
+  const containerRef = useRef<HTMLDivElement>(null)
+  const others = useOthers()
+  const { flowToScreenPosition } = useReactFlow()
+  // Subscribe to viewport so cursors reposition on pan/zoom
+  useViewport()
 
   return (
-    <>
-      {others.map(({ connectionId, presence, info }) => {
-        if (!presence?.cursor) return null;
+    <div
+      ref={containerRef}
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+    >
+      {others.map((other) => {
+        const cursor = other.presence.cursor
+        if (!cursor || !containerRef.current) return null
 
-        const color = info?.color || "#00E5FF";
-        const name = info?.name || "Anonymous";
+        const rect = containerRef.current.getBoundingClientRect()
+        const screen = flowToScreenPosition(cursor)
+        const x = screen.x - rect.left
+        const y = screen.y - rect.top
+        const color = other.info?.color ?? "#888888"
+        const name = other.info?.name ?? "Anonymous"
 
         return (
           <div
-            key={connectionId}
-            className="pointer-events-none absolute left-0 top-0 z-50 transition-all duration-100 ease-linear will-change-transform"
-            style={{
-              transform: `translateX(${presence.cursor.x}px) translateY(${presence.cursor.y}px)`,
-            }}
+            key={other.connectionId}
+            className="absolute z-50"
+            style={{ left: x, top: y }}
           >
-            {/* Cursor SVG */}
             <svg
-              width="24"
-              height="36"
-              viewBox="0 0 24 36"
+              width="16"
+              height="20"
+              viewBox="0 0 16 20"
               fill="none"
-              stroke="white"
-              strokeWidth="2"
               xmlns="http://www.w3.org/2000/svg"
-              style={{ fill: color }}
-              className="drop-shadow-md"
             >
-              <path d="M5.65376 12.3673H5.46026L5.31717 12.4976L0.500002 16.8829L0.500002 1.19841L11.7841 12.3673H5.65376Z" />
+              <path
+                d="M1 1L14 8.5L8 10.5L5.5 17L1 1Z"
+                fill={color}
+                stroke="white"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+              />
             </svg>
-            
-            {/* Name Badge */}
             <div
-              className="absolute left-5 top-5 rounded-md px-2 py-1 text-xs font-medium text-white shadow-md whitespace-nowrap"
-              style={{ backgroundColor: color }}
+              className="mt-0.5 flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-white"
+              style={{ background: color, whiteSpace: "nowrap" }}
             >
+              {other.presence.thinking && (
+                <Loader2 className="h-2.5 w-2.5 animate-spin" />
+              )}
               {name}
             </div>
           </div>
-        );
+        )
       })}
-    </>
-  );
+    </div>
+  )
 }
