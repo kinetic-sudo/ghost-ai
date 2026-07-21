@@ -9,11 +9,14 @@ import {
   useReactFlow,
   type Connection 
 } from "@xyflow/react";
+import { useMyPresence } from "@liveblocks/react/suspense";
 
 import { CanvasNodeComponent } from "./canvas-node";
 import { CanvasEdgeComponent } from "./canvas-edge";
 import { ShapePanel } from "./shape-panel";
 import { CanvasControls } from "./canvas-control";
+import { PresenceUI } from "./canvas-prescense";
+import { LiveCursors } from "./live-cursor";
 import { StarterTemplatesModal } from "@/components/editor/starter-template-modal";
 import { type CanvasTemplate } from "@/components/editor/starter-template";
 import { useLiveblocksFlow } from "@/hooks/use-liveblocks-flow";
@@ -53,6 +56,7 @@ export function CanvasEditor() {
   } = useLiveblocksFlow({ suspense: true });
 
   const { screenToFlowPosition, fitView } = useReactFlow();
+  const [, updateMyPresence] = useMyPresence();
 
   // Listen for the custom event dispatched from the layout EditorNavbar
   useEffect(() => {
@@ -60,6 +64,22 @@ export function CanvasEditor() {
     window.addEventListener("open-templates", handleOpenTemplates);
     return () => window.removeEventListener("open-templates", handleOpenTemplates);
   }, []);
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      updateMyPresence({
+        cursor: {
+          x: Math.round(e.clientX),
+          y: Math.round(e.clientY),
+        },
+      });
+    },
+    [updateMyPresence]
+  );
+
+  const handlePointerLeave = useCallback(() => {
+    updateMyPresence({ cursor: null });
+  }, [updateMyPresence]);
 
   const handleConnect = useCallback(
     (params: Connection) => {
@@ -126,8 +146,11 @@ export function CanvasEditor() {
   );
 
   return (
-    <div className="relative flex h-full w-full flex-col bg-[#0a0a0a]">
-      {/* Navbar Removed from here to prevent layout duplication */}
+    <div 
+      className="relative flex h-full w-full flex-col bg-[#0a0a0a]"
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
+    >
       <div className="relative flex-1">
         <ReactFlow
           nodes={nodes}
@@ -147,6 +170,11 @@ export function CanvasEditor() {
           <Background color="#222" gap={16} />
           <CanvasControls />
         </ReactFlow>
+
+        {/* Real-time Collaboration Overlays */}
+        <LiveCursors />
+        <PresenceUI />
+
         <ShapePanel />
       </div>
 
