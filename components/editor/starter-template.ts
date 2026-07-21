@@ -34,8 +34,8 @@ function createNode(
     data: {
       label,
       shape,
-      color: colorObj.value,
-      textColor: colorObj.textColor,
+      color: colorObj.fill,
+      textColor: colorObj.text,
     },
     style: {
       width,

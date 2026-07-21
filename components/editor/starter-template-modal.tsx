@@ -253,10 +253,10 @@ export function StarterTemplatesModal({
 
                 <Button
                   variant="outline"
-                  className="w-full bg-transparent border-white/10 hover:bg-[#00E5FF] hover:text-black hover:border-[#00E5FF] text-white/80 transition-all rounded-lg h-9 shadow-sm font-medium"
+                  className="w-full bg-transparent border-white/10 hover:bg-[#00E5FF] hover:text-[#00E5FF] hover:border-[#00E5FF] text-white/80 transition-all rounded-lg h-9 shadow-sm font-medium"
                   onClick={() => handleSelect(template)}
                 >
-                  <Download className="w-3.5 h-3.5 mr-2 opacity-50 group-hover:opacity-100 transition-opacity" />
+                  <Download className="w-3.5 h-3.5 mr-2 opacity-50 group-hover:opacity-200 transition-opacity" />
                   Import Template
                 </Button>
               </div>
