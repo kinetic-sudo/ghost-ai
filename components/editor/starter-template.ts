@@ -78,6 +78,7 @@ export const CANVAS_TEMPLATES: CanvasTemplate[] = [
       createEdge("e6", "payment-service", "payment-db", "SQL"),
     ],
   },
+  
   {
     id: "cicd-pipeline",
     name: "CI/CD Pipeline",
@@ -117,5 +118,6 @@ export const CANVAS_TEMPLATES: CanvasTemplate[] = [
       createEdge("e4", "event-bus", "consumer-notification", "Subscribe"),
       createEdge("e5", "consumer-analytics", "analytics-store", "Batch Write"),
     ],
+    
   },
 ];

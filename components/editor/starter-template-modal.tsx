@@ -5,12 +5,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { CANVAS_TEMPLATES, type CanvasTemplate } from "./starter-template";
-import { LayoutTemplate } from "lucide-react";
+import { Download } from "lucide-react";
 import type { CanvasNodeData } from "@/types/canvas";
 
 function TemplatePreview({ template }: { template: CanvasTemplate }) {
@@ -66,8 +64,11 @@ function TemplatePreview({ template }: { template: CanvasTemplate }) {
   const viewBox = `${minX - padding} ${minY - padding} ${bboxWidth} ${bboxHeight}`;
 
   return (
-    <div className="relative h-36 w-full overflow-hidden rounded-lg border border-white/[0.08] bg-[#0d0d0d] p-2 flex items-center justify-center">
-      <svg viewBox={viewBox} className="h-full w-full max-h-full max-w-full">
+    <div className="relative h-40 w-full overflow-hidden rounded-lg border border-white/[0.04] bg-[#050505] p-2 flex items-center justify-center">
+      <svg
+        viewBox={viewBox}
+        className="h-full w-full max-h-full max-w-full opacity-70 group-hover:opacity-100 transition-opacity duration-300 drop-shadow-md"
+      >
         {/* Draw Edges */}
         {edges.map((edge) => {
           const source = nodeCenters.get(edge.source);
@@ -93,6 +94,8 @@ function TemplatePreview({ template }: { template: CanvasTemplate }) {
           if (!info) return null;
           const { x, y, w, h, color } = info;
           const shape = (node.data as CanvasNodeData)?.shape || "rectangle";
+          const strokeColor = "rgba(255,255,255,0.15)";
+          const strokeWidth = 1.5;
 
           if (shape === "circle") {
             const r = Math.min(w, h) / 2;
@@ -103,8 +106,8 @@ function TemplatePreview({ template }: { template: CanvasTemplate }) {
                 cy={y + h / 2}
                 r={r}
                 fill={color}
-                stroke="rgba(255,255,255,0.2)"
-                strokeWidth={1.5}
+                stroke={strokeColor}
+                strokeWidth={strokeWidth}
               />
             );
           }
@@ -119,8 +122,8 @@ function TemplatePreview({ template }: { template: CanvasTemplate }) {
                 height={h}
                 rx={h / 2}
                 fill={color}
-                stroke="rgba(255,255,255,0.2)"
-                strokeWidth={1.5}
+                stroke={strokeColor}
+                strokeWidth={strokeWidth}
               />
             );
           }
@@ -132,8 +135,8 @@ function TemplatePreview({ template }: { template: CanvasTemplate }) {
                 key={node.id}
                 points={pts}
                 fill={color}
-                stroke="rgba(255,255,255,0.2)"
-                strokeWidth={1.5}
+                stroke={strokeColor}
+                strokeWidth={strokeWidth}
               />
             );
           }
@@ -146,12 +149,39 @@ function TemplatePreview({ template }: { template: CanvasTemplate }) {
                 key={node.id}
                 points={pts}
                 fill={color}
-                stroke="rgba(255,255,255,0.2)"
-                strokeWidth={1.5}
+                stroke={strokeColor}
+                strokeWidth={strokeWidth}
               />
             );
           }
 
+          if (shape === "cylinder") {
+            const rx = w / 2;
+            const ry = h * 0.15;
+            return (
+              <g key={node.id}>
+                {/* Cylinder Body */}
+                <path
+                  d={`M ${x},${y + ry} v ${h - 2 * ry} a ${rx},${ry} 0 0,0 ${w},0 v -${h - 2 * ry} z`}
+                  fill={color}
+                  stroke={strokeColor}
+                  strokeWidth={strokeWidth}
+                />
+                {/* Cylinder Top */}
+                <ellipse
+                  cx={x + w / 2}
+                  cy={y + ry}
+                  rx={rx}
+                  ry={ry}
+                  fill={color}
+                  stroke={strokeColor}
+                  strokeWidth={strokeWidth}
+                />
+              </g>
+            );
+          }
+
+          // Default Rectangle
           return (
             <rect
               key={node.id}
@@ -161,8 +191,8 @@ function TemplatePreview({ template }: { template: CanvasTemplate }) {
               height={h}
               rx={8}
               fill={color}
-              stroke="rgba(255,255,255,0.2)"
-              strokeWidth={1.5}
+              stroke={strokeColor}
+              strokeWidth={strokeWidth}
             />
           );
         })}
@@ -189,51 +219,50 @@ export function StarterTemplatesModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl border-white/10 bg-[#141414] text-white">
-        <DialogHeader>
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5">
-              <LayoutTemplate className="h-4 w-4 text-[#00E5FF]" />
-            </div>
-            <DialogTitle className="text-lg font-semibold text-white">
-              Starter Templates
-            </DialogTitle>
-          </div>
-          <DialogDescription className="text-sm text-neutral-400">
-            Select a pre-built architecture diagram to quickly populate your canvas.
-          </DialogDescription>
+      <DialogContent className="sm:max-w-[950px] w-[95vw] bg-[#121212] border-white/10 p-6 sm:p-8 text-white rounded-2xl shadow-2xl overflow-hidden">
+        <DialogHeader className="mb-6 text-left space-y-2">
+          <DialogTitle className="text-2xl font-semibold tracking-tight text-white">
+            Starter Templates
+          </DialogTitle>
+          <p className="text-[14px] text-white/50 font-medium">
+            Select a pre-built architecture diagram to quickly populate your canvas. Existing nodes will be replaced — use{" "}
+            <kbd className="inline-flex items-center justify-center font-sans px-1.5 py-0.5 rounded-md bg-white/10 border border-white/10 text-white/80 text-[11px] font-semibold mx-0.5 shadow-sm">
+              ⌘Z
+            </kbd>{" "}
+            to undo.
+          </p>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] pr-2">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {CANVAS_TEMPLATES.map((template) => (
-              <div
-                key={template.id}
-                className="group flex flex-col justify-between rounded-xl border border-white/10 bg-[#1a1a1a] p-3 transition-all hover:border-[#00E5FF]/40 hover:shadow-lg hover:shadow-[#00E5FF]/5"
-              >
-                <div className="space-y-3">
-                  <TemplatePreview template={template} />
-                  <div>
-                    <h3 className="font-medium text-sm text-white group-hover:text-[#00E5FF] transition-colors">
-                      {template.name}
-                    </h3>
-                    <p className="mt-1 text-xs text-neutral-400 line-clamp-2">
-                      {template.description}
-                    </p>
-                  </div>
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {CANVAS_TEMPLATES.map((template) => (
+            <div
+              key={template.id}
+              className="flex flex-col group rounded-2xl border border-white/5 bg-white/[0.02] p-3 transition-all duration-300 hover:border-[#00E5FF]/30 hover:bg-white/[0.04] hover:shadow-xl hover:shadow-[#00E5FF]/5"
+            >
+              <div className="mb-4">
+                <TemplatePreview template={template} />
+              </div>
+
+              <div className="flex flex-col flex-1 px-1 pb-1">
+                <h3 className="text-[15px] font-semibold text-white mb-2 group-hover:text-[#00E5FF] transition-colors">
+                  {template.name}
+                </h3>
+                <p className="text-[13px] text-white/40 leading-relaxed flex-1 mb-5 line-clamp-3">
+                  {template.description}
+                </p>
 
                 <Button
+                  variant="outline"
+                  className="w-full bg-transparent border-white/10 hover:bg-[#00E5FF] hover:text-black hover:border-[#00E5FF] text-white/80 transition-all rounded-lg h-9 shadow-sm font-medium"
                   onClick={() => handleSelect(template)}
-                  size="sm"
-                  className="mt-4 w-full bg-white/10 text-xs text-white hover:bg-[#00E5FF] hover:text-black transition-colors"
                 >
+                  <Download className="w-3.5 h-3.5 mr-2 opacity-50 group-hover:opacity-100 transition-opacity" />
                   Import Template
                 </Button>
               </div>
-            ))}
-          </div>
-        </ScrollArea>
+            </div>
+          ))}
+        </div>
       </DialogContent>
     </Dialog>
   );
