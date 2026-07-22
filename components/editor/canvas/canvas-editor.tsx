@@ -15,7 +15,7 @@ import { CanvasNodeComponent } from "./canvas-node";
 import { CanvasEdgeComponent } from "./canvas-edge";
 import { ShapePanel } from "./shape-panel";
 import { CanvasControls } from "./canvas-control";
-import { PresenceUI } from "./canvas-prescense";
+import { CollaboratorAvatar } from "./canvas-prescense";
 import { LiveCursors } from "./live-cursor";
 import { StarterTemplatesModal } from "@/components/editor/starter-template-modal";
 import { type CanvasTemplate } from "@/components/editor/starter-template";
@@ -42,7 +42,11 @@ const DEFAULT_EDGE_OPTIONS = {
 
 let idCounter = 0;
 
-export function CanvasEditor() {
+interface CanvasEditorProps {
+  aiOpen?: boolean;
+}
+
+export function CanvasEditor({ aiOpen }: CanvasEditorProps) {
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const { 
     nodes, 
@@ -173,7 +177,7 @@ export function CanvasEditor() {
 
         {/* Real-time Collaboration Overlays */}
         <LiveCursors />
-        <PresenceUI />
+        <CollaboratorAvatar aiOpen={aiOpen} />
 
         <ShapePanel />
       </div>
