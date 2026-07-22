@@ -6,9 +6,7 @@ import {
   X, 
   Send, 
   FileText, 
-  Download, 
-  Sparkles,
-  Code2
+  Download 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,7 +36,7 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-resize textarea between 72px and 160px
+  // Auto-resize textarea
   useEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -63,7 +61,6 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
       textareaRef.current.style.height = "72px";
     }
 
-    // Static mock assistant reply for UI demonstration
     setTimeout(() => {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -84,23 +81,23 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
   if (!open) return null;
 
   return (
-    <aside className="absolute right-4 top-20 bottom-6 z-40 flex w-96 flex-col rounded-2xl border border-surface-border bg-base/95 shadow-2xl backdrop-blur-xl transition-all duration-300 ease-in-out">
+    <aside className="absolute right-4 top-16 bottom-4 z-40 flex w-[380px] flex-col rounded-2xl border border-white/10 bg-[#0F0E17]/95 shadow-2xl backdrop-blur-xl transition-all duration-300 ease-in-out">
       {/* Sidebar Header */}
-      <div className="flex items-center justify-between border-b border-surface-border px-5 py-4">
+      <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1D1B36] text-[#8B5CF6]">
             <Bot className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-primary-text">AI Workspace</h2>
-            <p className="text-xs text-muted-text">Collaborate with Ghost AI</p>
+            <h2 className="text-sm font-semibold text-white">AI Workspace</h2>
+            <p className="text-xs text-white/50">Collaborate with Ghost AI</p>
           </div>
         </div>
         <Button
           variant="ghost"
           size="icon"
           onClick={onClose}
-          className="h-8 w-8 text-muted-text hover:text-primary-text"
+          className="h-8 w-8 rounded-full text-white/40 hover:bg-white/5 hover:text-white"
         >
           <X className="h-4 w-4" />
         </Button>
@@ -108,17 +105,17 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
 
       {/* Tabbed Layout */}
       <Tabs defaultValue="architect" className="flex flex-1 flex-col overflow-hidden">
-        <div className="border-b border-surface-border px-5 py-3">
-          <TabsList className="grid w-full grid-cols-2 bg-elevated p-1">
+        <div className="px-5 pt-3 pb-2">
+          <TabsList className="inline-flex h-auto rounded-full border border-white/5 bg-[#181726] p-1">
             <TabsTrigger 
               value="architect"
-              className="text-xs font-medium text-muted-text data-[state=active]:bg-accent data-[state=active]:text-accent"
+              className="rounded-full px-4 py-1.5 text-xs font-medium text-white/60 transition-all data-[state=active]:bg-[#6E56CF] data-[state=active]:text-white data-[state=active]:shadow-md"
             >
               AI Architect
             </TabsTrigger>
             <TabsTrigger 
               value="specs"
-              className="text-xs font-medium text-muted-text data-[state=active]:bg-accent data-[state=active]:text-accent"
+              className="rounded-full px-4 py-1.5 text-xs font-medium text-white/60 transition-all data-[state=active]:bg-[#6E56CF] data-[state=active]:text-white data-[state=active]:shadow-md"
             >
               Specs
             </TabsTrigger>
@@ -127,24 +124,24 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
 
         {/* AI Architect Tab */}
         <TabsContent value="architect" className="flex flex-1 flex-col overflow-hidden data-[state=active]:flex">
-          <ScrollArea className="flex-1 px-5 py-4">
+          <ScrollArea className="flex-1 px-5 py-2">
             {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-                  <Sparkles className="h-6 w-6" />
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#1D1B36] text-[#8B5CF6]">
+                  <Bot className="h-6 w-6" />
                 </div>
-                <h3 className="text-sm font-medium text-primary-text">How can Ghost AI help?</h3>
-                <p className="mt-1 max-w-[260px] text-xs text-muted-text">
-                  Ask questions about your architecture or pick a starter prompt below.
+                <h3 className="mb-1 text-sm font-semibold text-white">Ghost AI Architect</h3>
+                <p className="mb-6 max-w-[280px] text-xs leading-relaxed text-white/50">
+                  Describe your system and I'll help you design the architecture.
                 </p>
                 
                 {/* Starter Chips */}
-                <div className="mt-6 flex flex-col gap-2 w-full">
+                <div className="flex w-full max-w-[320px] flex-col gap-2.5">
                   {STARTER_CHIPS.map((chip) => (
                     <button
                       key={chip}
                       onClick={() => handleSend(chip)}
-                      className="rounded-xl bg-subtle px-3.5 py-2.5 text-left text-xs font-medium text-accent-text transition-colors hover:bg-subtle/80"
+                      className="w-full rounded-full border border-white/5 bg-[#1A182D] py-3 px-4 text-center text-xs font-medium text-[#B8A6FC] shadow-sm transition-colors hover:bg-[#23203B]"
                     >
                       {chip}
                     </button>
@@ -152,18 +149,18 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3 py-2">
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
                     className={cn(
-                      "flex max-w-[85%] flex-col rounded-2xl px-4 py-3 text-xs leading-relaxed shadow-sm",
+                      "flex max-w-[88%] flex-col rounded-2xl px-4 py-3 text-xs leading-relaxed shadow-sm",
                       msg.role === "user"
-                        ? "ml-auto bg-brand-dim border-2 border-brand/50 text-copy-primary"
-                        : "mr-auto bg-elevated border border-surface-border text-accent-text"
+                        ? "ml-auto bg-[#6E56CF] text-white"
+                        : "mr-auto border border-white/5 bg-[#1A182D] text-white/90"
                     )}
                   >
-                    <span className="mb-1 font-semibold opacity-70">
+                    <span className="mb-1 text-[10px] font-semibold opacity-70">
                       {msg.role === "user" ? "You" : "Ghost AI"}
                     </span>
                     {msg.content}
@@ -174,27 +171,29 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
           </ScrollArea>
 
           {/* Input Area */}
-          <div className="border-t border-surface-border p-4">
-            <div className="relative flex items-end gap-2 rounded-2xl bg-elevated p-2 border border-surface-border">
+          <div className="p-4">
+            <div className="relative flex flex-col rounded-2xl border border-white/10 bg-[#151422] p-3 shadow-inner">
               <Textarea
                 ref={textareaRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask AI Architect..."
-                className="max-h-[160px] min-h-[72px] w-full resize-none border-0 bg-transparent p-2 text-xs text-primary-text focus-visible:ring-0 focus-visible:ring-offset-0"
+                placeholder="Describe your system..."
+                className="min-h-[72px] max-h-[160px] w-full resize-none border-0 bg-transparent p-1 text-xs text-white placeholder:text-white/30 focus-visible:ring-0 focus-visible:ring-offset-0"
               />
-              <Button
-                size="icon"
-                onClick={() => handleSend()}
-                disabled={!input.trim()}
-                className="h-9 w-9 shrink-0 rounded-xl bg-accent text-white transition-opacity disabled:opacity-40"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="mt-2 text-center text-[10px] text-muted-text">
-              Enter submits, Shift+Enter adds a newline
+              <div className="flex items-center justify-between pt-2">
+                <span className="select-none text-[10px] text-white/30">
+                  Shift+Enter for newline
+                </span>
+                <Button
+                  size="icon"
+                  onClick={() => handleSend()}
+                  disabled={!input.trim()}
+                  className="h-8 w-8 shrink-0 rounded-full bg-[#6E56CF] text-white transition-all hover:bg-[#5b48bd] disabled:bg-white/10 disabled:opacity-30"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
           </div>
         </TabsContent>
@@ -204,37 +203,37 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
           <div className="flex flex-col gap-4">
             <Button 
               onClick={() => {}}
-              className="w-full rounded-xl bg-accent text-white font-medium shadow-lg hover:opacity-90"
+              className="w-full rounded-full bg-[#6E56CF] font-medium text-white shadow-lg transition-all hover:bg-[#5b48bd]"
             >
               Generate Spec
             </Button>
 
             <div className="mt-2">
-              <h4 className="text-xs font-semibold text-muted-text uppercase tracking-wider mb-3">Generated Specifications</h4>
+              <h4 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-white/40">Generated Specifications</h4>
               
               {/* Demo Spec Card */}
-              <div className="group relative flex flex-col gap-3 rounded-2xl border border-surface-border bg-elevated p-4 shadow-md transition-all">
+              <div className="group relative flex flex-col gap-3 rounded-2xl border border-white/5 bg-[#151422] p-4 shadow-md transition-all">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1D1B36] text-[#8B5CF6]">
                       <FileText className="h-5 w-5" />
                     </div>
                     <div>
-                      <h5 className="text-sm font-semibold text-primary-text">System Architecture Spec</h5>
-                      <p className="text-xs text-muted-text">Updated 5m ago</p>
+                      <h5 className="text-sm font-semibold text-white">System Architecture Spec</h5>
+                      <p className="text-xs text-white/40">Updated 5m ago</p>
                     </div>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
                     disabled
-                    className="h-8 w-8 text-muted-text opacity-50 cursor-not-allowed"
+                    className="h-8 w-8 cursor-not-allowed text-white/30 opacity-50"
                     title="Download unavailable in demo mode"
                   >
                     <Download className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-muted-text line-clamp-2 leading-relaxed">
+                <p className="line-clamp-2 text-xs leading-relaxed text-white/60">
                   Comprehensive specification document detailing microservice boundaries, API contracts, and event-driven data flow pipelines.
                 </p>
               </div>
