@@ -31,14 +31,6 @@ export function WorkspaceShell({ projectId, projectName }: WorkspaceShellProps) 
             {projectName}
           </h1>
           <div className="flex items-center gap-2">
-            {/* <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShareOpen(true)}
-              className="h-8 gap-1.5 text-white/50 hover:text-white bg-white/[0.03] hover:bg-white/[0.08] rounded-lg"
-            >
-              Share
-            </Button> */}
             <Button
               variant="ghost"
               size="icon"
@@ -54,9 +46,9 @@ export function WorkspaceShell({ projectId, projectName }: WorkspaceShellProps) 
           </div>
         </header>
 
-        {/* Canvas — flush fill, no border/radius/shadow/bg override */}
+        {/* Canvas — flush fill, passing aiOpen so avatars hide when sidebar is open */}
         <div className="flex-1 overflow-hidden relative">
-          <CanvasRoom roomId={projectId} />
+          <CanvasRoom roomId={projectId} aiOpen={aiOpen} />
         </div>
       </div>
 
