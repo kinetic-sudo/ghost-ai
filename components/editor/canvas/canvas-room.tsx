@@ -11,6 +11,7 @@ import { CanvasEditor } from "@/components/editor/canvas/canvas-editor";
 
 interface CanvasRoomProps {
   roomId: string;
+  aiOpen?: boolean;
 }
 
 function CanvasLoadingState() {
@@ -24,7 +25,7 @@ function CanvasLoadingState() {
   );
 }
 
-export function CanvasRoom({ roomId }: CanvasRoomProps) {
+export function CanvasRoom({ roomId, aiOpen }: CanvasRoomProps) {
   return (
     <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
       <RoomProvider
@@ -35,7 +36,7 @@ export function CanvasRoom({ roomId }: CanvasRoomProps) {
             inside CanvasInner which is inside ClientSideSuspense */}
         <ReactFlowProvider>
           <ClientSideSuspense fallback={<CanvasLoadingState />}>
-            {() => <CanvasEditor />}
+            {() => <CanvasEditor aiOpen={aiOpen} />}
           </ClientSideSuspense>
         </ReactFlowProvider>
       </RoomProvider>
