@@ -12,8 +12,10 @@ interface EditorNavbarProps {
   isSidebarOpen?: boolean;
   onSidebarToggle?: () => void;
   projectName?: string;
-  projectId?: string;   // present on workspace pages, absent on /editor home
+  projectId?: string;
   onOpenTemplates?: () => void;
+  aiOpen?: boolean;
+  onAiToggle?: () => void;
   className?: string;
 }
 
@@ -23,6 +25,8 @@ export function EditorNavbar({
   projectName = "Untitled Workspace",
   projectId,
   onOpenTemplates,
+  aiOpen = false,
+  onAiToggle,
   className,
 }: EditorNavbarProps) {
   const [shareOpen, setShareOpen] = useState(false);
@@ -74,7 +78,6 @@ export function EditorNavbar({
                 if (onOpenTemplates) {
                   onOpenTemplates();
                 } else if (typeof window !== "undefined") {
-                  // Fire event to CanvasEditor if no direct prop is passed
                   window.dispatchEvent(new CustomEvent("open-templates"));
                 }
               }}
@@ -98,10 +101,16 @@ export function EditorNavbar({
             </Button>
           )}
 
-          {/* AI */}
+          {/* AI Button Trigger */}
           <Button
             size="sm"
-            className="h-8 gap-1.5 rounded-lg bg-[#00E5FF] px-3 text-xs font-bold text-black hover:bg-[#00E5FF]/90 shadow-[0_2px_12px_rgba(0,229,255,0.15)] transition-all active:scale-[0.98]"
+            onClick={onAiToggle}
+            className={cn(
+              "h-8 gap-1.5 rounded-lg px-3 text-xs font-bold transition-all active:scale-[0.98]",
+              aiOpen
+                ? "bg-[#6E56CF] text-white shadow-[0_2px_12px_rgba(110,86,207,0.3)] hover:bg-[#5b48bd]"
+                : "bg-[#00E5FF] text-black hover:bg-[#00E5FF]/90 shadow-[0_2px_12px_rgba(0,229,255,0.15)]"
+            )}
           >
             <Sparkles className="h-3.5 w-3.5" fill="currentColor" />
             AI
@@ -119,7 +128,7 @@ export function EditorNavbar({
         </div>
       </header>
 
-      {/* Share dialog — only mounted when projectId is available */}
+      {/* Share dialog */}
       {projectId && (
         <ShareDialog
           projectId={projectId}
