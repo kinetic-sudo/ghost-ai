@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { ProjectDialogs } from "@/components/editor/project-dialogs";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
+import { AiSidebar } from "@/components/editor/ai-sidebar";
+import { AiSidebarProvider, useAiSidebar } from "@/components/editor/ai-sidebar-context";
 import type { Project } from "@/types/project";
 
 interface EditorLayoutProps {
@@ -16,7 +18,7 @@ interface EditorLayoutProps {
   projectName?: string;
 }
 
-export function EditorLayout({
+function EditorLayoutInner({
   children,
   ownedProjects = [],
   sharedProjects = [],
@@ -24,6 +26,7 @@ export function EditorLayout({
   activeProjectId,
 }: EditorLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { aiOpen, toggleAi, closeAi } = useAiSidebar();
 
   const pathname = usePathname();
   const pathSegments = pathname ? pathname.split("/") : [];
@@ -41,8 +44,6 @@ export function EditorLayout({
   const isOwner = ownedProjects.some((p) => p.id === currentProjectId);
 
   return (
-    // Root fills the screen. overflow-hidden prevents scrollbars during
-    // sidebar slide animations.
     <div className="relative flex h-screen flex-col overflow-hidden bg-[#0A0A0A]">
       <EditorNavbar
         isSidebarOpen={isSidebarOpen}
@@ -50,13 +51,13 @@ export function EditorLayout({
         projectName={resolvedProjectName}
         projectId={currentProjectId}
         isOwner={isOwner}
+        aiOpen={aiOpen}
+        onAiToggle={toggleAi}
       />
 
-      {/* Canvas fills the full remaining area — sidebars float over it */}
       <main className="relative flex-1 overflow-hidden">
         {children}
 
-        {/* Left sidebar — fixed overlay, floats over canvas */}
         <ProjectSidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
@@ -65,9 +66,20 @@ export function EditorLayout({
           sharedProjects={sharedProjects}
           activeProjectId={currentProjectId}
         />
+
+        {/* Single AI Sidebar instance, controlled by the navbar above */}
+        <AiSidebar open={aiOpen} onClose={closeAi} />
       </main>
 
       <ProjectDialogs />
     </div>
+  );
+}
+
+export function EditorLayout(props: EditorLayoutProps) {
+  return (
+    <AiSidebarProvider>
+      <EditorLayoutInner {...props} />
+    </AiSidebarProvider>
   );
 }
