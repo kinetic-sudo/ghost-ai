@@ -81,8 +81,8 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
   if (!open) return null;
 
   return (
-    <aside className="absolute right-4 top-16 bottom-4 z-50 flex w-[19rem] flex-col rounded-2xl border border-white/10 bg-[#0F0E17]/95 shadow-2xl backdrop-blur-xl transition-all duration-300 ease-in-out">
-      {/* Sidebar Header */}
+    <aside className="absolute right-4 top-[4.5rem] bottom-4 z-50 flex w-[19rem] flex-col rounded-2xl border border-white/10 bg-[#0F0E17]/95 shadow-2xl backdrop-blur-xl transition-all duration-300 ease-in-out">
+    {/* Sidebar Header */}
       <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1D1B36] text-[#8B5CF6]">
