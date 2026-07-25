@@ -17,6 +17,7 @@ import { ShapePanel } from "./shape-panel";
 import { CanvasControls } from "./canvas-control";
 import { CollaboratorAvatar } from "./canvas-prescense";
 import { LiveCursors } from "./live-cursor";
+import { useCanvasAutosave } from "@/hooks/use-canvas-autosave";
 import { StarterTemplatesModal } from "@/components/editor/starter-template-modal";
 import { type CanvasTemplate } from "@/components/editor/starter-template";
 import { useLiveblocksFlow } from "@/hooks/use-liveblocks-flow";
@@ -43,10 +44,11 @@ const DEFAULT_EDGE_OPTIONS = {
 let idCounter = 0;
 
 interface CanvasEditorProps {
+  projectId: string;
   aiOpen?: boolean;
 }
 
-export function CanvasEditor({ aiOpen }: CanvasEditorProps) {
+export function CanvasEditor({ projectId, aiOpen }: CanvasEditorProps) {
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const { 
     nodes, 

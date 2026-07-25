@@ -36,7 +36,7 @@ export function CanvasRoom({ roomId, aiOpen }: CanvasRoomProps) {
             inside CanvasInner which is inside ClientSideSuspense */}
         <ReactFlowProvider>
           <ClientSideSuspense fallback={<CanvasLoadingState />}>
-            {() => <CanvasEditor aiOpen={aiOpen} />}
+          {() => <CanvasEditor projectId={roomId} aiOpen={aiOpen} />}
           </ClientSideSuspense>
         </ReactFlowProvider>
       </RoomProvider>
