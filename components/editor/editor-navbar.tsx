@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { UserButton } from "@clerk/nextjs";
-import { PanelLeftClose, PanelLeftOpen, Share2, Sparkles, LayoutTemplate } from "lucide-react";
-
+import { PanelLeftClose, PanelLeftOpen, Share2, Sparkles, LayoutTemplate, Loader2, Check, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ShareDialog } from "@/components/editor/share-dialog";
+import type { SaveStatus } from "@/context/save-status-context";
 import { cn } from "@/lib/utils";
 
 interface EditorNavbarProps {
@@ -16,6 +16,7 @@ interface EditorNavbarProps {
   onOpenTemplates?: () => void;
   aiOpen?: boolean;
   onAiToggle?: () => void;
+  saveStatus?: SaveStatus;
   className?: string;
 }
 
@@ -26,10 +27,29 @@ export function EditorNavbar({
   projectId,
   onOpenTemplates,
   aiOpen = false,
+  saveStatus = "idle",
   onAiToggle,
   className,
 }: EditorNavbarProps) {
   const [shareOpen, setShareOpen] = useState(false);
+
+    const saveIndicator =
+    saveStatus === "saving" ? (
+      <span className="flex items-center gap-1.5 text-[11px] font-medium text-white/40">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        Saving…
+      </span>
+    ) : saveStatus === "saved" ? (
+      <span className="flex items-center gap-1.5 text-[11px] font-medium text-white/40">
+        <Check className="h-3 w-3 text-[#62C073]" />
+        Saved
+      </span>
+    ) : saveStatus === "error" ? (
+      <span className="flex items-center gap-1.5 text-[11px] font-medium text-[#FF6166]">
+        <AlertTriangle className="h-3 w-3" />
+        Save failed
+      </span>
+    ) : null;
 
   return (
     <>
@@ -69,6 +89,9 @@ export function EditorNavbar({
 
         {/* Right — actions */}
         <div className="flex items-center gap-2">
+        {projectId && saveIndicator && (
+           <div className="hidden md:flex items-center px-2">{saveIndicator}</div>
+          )}
           {/* Templates Trigger */}
           {(projectId || onOpenTemplates) && (
             <Button
