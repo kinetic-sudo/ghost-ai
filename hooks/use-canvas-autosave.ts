@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import type { Node, Edge } from "@xyflow/react";
 
-import { useSaveStatus } from "@/contexts/save-status-context";
+import { useSaveStatus } from "@/context/save-status-context";
 
 interface UseCanvasAutosaveOptions {
   projectId: string;
