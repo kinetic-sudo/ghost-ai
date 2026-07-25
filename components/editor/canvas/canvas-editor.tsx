@@ -50,6 +50,7 @@ interface CanvasEditorProps {
 
 export function CanvasEditor({ projectId, aiOpen }: CanvasEditorProps) {
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
   const { 
     nodes, 
     edges, 
@@ -63,6 +64,46 @@ export function CanvasEditor({ projectId, aiOpen }: CanvasEditorProps) {
 
   const { screenToFlowPosition, fitView } = useReactFlow();
   const [, updateMyPresence] = useMyPresence();
+
+  useEffect(() => {
+     let cancelled = false;
+
+      async function loadSavedCanvas() {
+        if (nodes.length > 0 || edges.length > 0) {
+          if (!cancelled) setInitialLoadDone(true);
+          return;
+        }
+  
+        try {
+          const res = await fetch(`/api/projects/${projectId}/canvas`);
+          if (res.ok) {
+            const data = await res.json();
+            if (!cancelled && (data.nodes?.length || data.edges?.length)) {
+              setNodes(data.nodes ?? []);
+              setEdges(data.edges ?? []);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to load saved canvas", err);
+        } finally {
+          if (!cancelled) setInitialLoadDone(true);
+        }
+      }
+  
+      loadSavedCanvas();
+      return () => {
+        cancelled = true;
+      };
+      // Deliberately run once on mount only.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [projectId]);
+  
+    useCanvasAutosave({
+      projectId,
+      nodes,
+      edges,
+      enabled: initialLoadDone,
+    });
 
   // Listen for the custom event dispatched from the layout EditorNavbar
   useEffect(() => {
