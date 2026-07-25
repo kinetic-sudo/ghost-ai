@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { UserButton } from "@clerk/nextjs";
-import { PanelLeftClose, PanelLeftOpen, Share2, Sparkles, LayoutTemplate } from "lucide-react";
-
+import { PanelLeftClose, PanelLeftOpen, Share2, Sparkles, LayoutTemplate, Loader2, Check, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ShareDialog } from "@/components/editor/share-dialog";
+import type { SaveStatus } from "@/context/save-status-context";
 import { cn } from "@/lib/utils";
 
 interface EditorNavbarProps {
@@ -16,6 +16,7 @@ interface EditorNavbarProps {
   onOpenTemplates?: () => void;
   aiOpen?: boolean;
   onAiToggle?: () => void;
+  saveStatus?: SaveStatus;
   className?: string;
 }
 
@@ -26,6 +27,7 @@ export function EditorNavbar({
   projectId,
   onOpenTemplates,
   aiOpen = false,
+  saveStatus = "idle",
   onAiToggle,
   className,
 }: EditorNavbarProps) {
