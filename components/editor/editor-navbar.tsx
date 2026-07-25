@@ -33,6 +33,24 @@ export function EditorNavbar({
 }: EditorNavbarProps) {
   const [shareOpen, setShareOpen] = useState(false);
 
+    const saveIndicator =
+    saveStatus === "saving" ? (
+      <span className="flex items-center gap-1.5 text-[11px] font-medium text-white/40">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        Saving…
+      </span>
+    ) : saveStatus === "saved" ? (
+      <span className="flex items-center gap-1.5 text-[11px] font-medium text-white/40">
+        <Check className="h-3 w-3 text-[#62C073]" />
+        Saved
+      </span>
+    ) : saveStatus === "error" ? (
+      <span className="flex items-center gap-1.5 text-[11px] font-medium text-[#FF6166]">
+        <AlertTriangle className="h-3 w-3" />
+        Save failed
+      </span>
+    ) : null;
+
   return (
     <>
       <header
