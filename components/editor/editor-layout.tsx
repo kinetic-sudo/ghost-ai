@@ -8,6 +8,7 @@ import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { AiSidebar } from "@/components/editor/ai-sidebar";
 import { AiSidebarProvider, useAiSidebar } from "@/components/editor/ai-sidebar-context";
+import { SaveStatusProvider, useSaveStatus } from "@/context/save-status-context";
 import type { Project } from "@/types/project";
 
 interface EditorLayoutProps {
@@ -27,6 +28,7 @@ function EditorLayoutInner({
 }: EditorLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const { aiOpen, toggleAi, closeAi } = useAiSidebar();
+  const { status: saveStatus } = useSaveStatus();
 
   const pathname = usePathname();
   const pathSegments = pathname ? pathname.split("/") : [];
@@ -51,6 +53,7 @@ function EditorLayoutInner({
         projectName={resolvedProjectName}
         projectId={currentProjectId}
         isOwner={isOwner}
+        saveStatus={saveStatus}
         aiOpen={aiOpen}
         onAiToggle={toggleAi}
       />
@@ -78,8 +81,10 @@ function EditorLayoutInner({
 
 export function EditorLayout(props: EditorLayoutProps) {
   return (
-    <AiSidebarProvider>
-      <EditorLayoutInner {...props} />
-    </AiSidebarProvider>
+        <AiSidebarProvider>
+          <SaveStatusProvider>
+            <EditorLayoutInner {...props} />
+          </SaveStatusProvider>
+        </AiSidebarProvider>
   );
 }
