@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Ready for presence UI (live cursors, user avatars) and AI sidebar implementation.
+- Ready for presence UI (live cursors, user avatars — already implemented via `LiveCursors`/`CollaboratorAvatar`, confirm polish) and full AI sidebar backend implementation.
 
 ## Completed
 
@@ -29,6 +29,10 @@ Update this file whenever the current phase, active feature, or implementation s
 - `15-color-toolbar` — Floating node toolbar with predefined background and text color swatches (`NODE_COLORS`). Swatches feature active ring states and hover glowing effects matching text colors. Dragging and panning during toolbar interaction prevented via `nodrag nopan`. Node state updated real-time using `updateNodeData`.
 - `16-edge-behavior` — Custom right-angle edge renderer with arrow markers (`CanvasEdgeComponent`). Wide 20px hit-path for effortless edge selection. Connection handles on all 4 node sides fading in on hover with `ConnectionMode.Loose`. Double-click inline label editing powered by `EdgeLabelRenderer` and `getSmoothStepPath` midpoint coordinates. Auto-growing input with `nodrag nopan` and collaborative state synchronization via `useLiveblocksFlow`.
 - `17-canvas-controls` — Added pill-shaped control bar at bottom-left (`CanvasControls`) containing animated zoom controls (`zoomIn`, `zoomOut`, `fitView`) and Liveblocks history controls (`useUndo`, `useRedo`, `useCanUndo`, `useCanRedo`). Built `useKeyboardShortcuts` hook to handle `+`/`=` (zoom in), `-` (zoom out), `Cmd/Ctrl+Z` (undo), and `Cmd/Ctrl+Shift+Z` / `Cmd/Ctrl+Y` (redo), automatically skipping trigger events when focused on editable input fields or textareas.
+- `18-starter-templates` — `StarterTemplatesModal`, `CanvasTemplate` type, `handleImportTemplate` wired in `CanvasEditor` via `setNodes`/`setEdges` + `fitView`. Triggered from `EditorNavbar` via `onOpenTemplates` prop or `open-templates` custom window event.
+- `19-canvas-presence` — `CollaboratorAvatar` and `LiveCursors` components rendered as overlays inside `CanvasEditor`. Pointer move/leave handlers update `useMyPresence()` cursor state.
+- `20-navbar-dedup` — Fixed duplicate `EditorNavbar`/`AiSidebar` rendering caused by both `EditorLayout` and `WorkspaceShell` independently mounting them. Introduced `AiSidebarProvider`/`useAiSidebar` context (`components/editor/ai-sidebar-context.tsx`) so `EditorLayout` is now the single owner of both `EditorNavbar` and `AiSidebar`; `WorkspaceShell` reads `aiOpen` from context and only renders `CanvasRoom`. Removed dead unused `shareOpen` state/`ShareDialog` instance from `WorkspaceShell` (the real one lives in `EditorNavbar`). Fixed `AiSidebar` floating panel top offset (`top-16` → `top-[4.5rem]`) to align its 16px inset with the `right-4`/`bottom-4` edges relative to the `h-14` navbar.
+- `21-canvas-autosave` — `PUT`/`GET /api/projects/[projectId]/canvas` routes (Vercel Blob for canvas JSON, Prisma `canvasJsonPath` reused for the blob URL — no schema migration needed). `hooks/use-canvas-autosave.ts` debounces saves (1500ms) off Liveblocks `nodes`/`edges`, aborts in-flight requests on rapid changes, skips the first enabling render. `contexts/save-status-context.tsx` (`SaveStatusProvider`/`useSaveStatus`) bridges save status from `CanvasEditor` (inside the Liveblocks room tree) up to `EditorNavbar` (in `EditorLayout`, outside it) — same cross-boundary pattern as `AiSidebarContext`. `CanvasEditor` now takes a `projectId` prop (passed from `CanvasRoom`'s `roomId`) and runs a mount-only load effect: hydrates from the saved blob only if the room is empty, otherwise skips entirely to avoid overwriting active collaboration.
 
 ## In Progress
 
@@ -36,12 +40,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Presence UI — live cursors, user avatars.
-- AI sidebar implementation.
+- AI sidebar implementation (real backend — currently `AiSidebar` is a UI shell with mock `setTimeout` responses and a disabled Specs download button).
 
 ## Open Questions
 
-- Canvas storage persistence — deferred to a later spec.
+- None.
 
 ## Architecture Decisions
 
@@ -53,8 +56,8 @@ Update this file whenever the current phase, active feature, or implementation s
 - `lib/prisma.ts` uses `@prisma/extension-accelerate` with `accelerateUrl`. Named export `{ prisma }`.
 - API routes use `auth()` from `@clerk/nextjs/server`. Unauthenticated → 401. Non-owner → 403. `params` awaited (Next.js 15).
 - `useProjectActions` owns all mutations. Dialog state in `ProjectDialogsProvider` context. `activeProjectId` resolved via `usePathname()`.
-- `lib/project-access.ts` — `getAccessibleProject(roomId)` queries Prisma with OR: owner OR collaborator email.
-- Canvas architecture: `CanvasRoom` → `LiveblocksProvider` → `RoomProvider` → `ClientSideSuspense` → `CanvasEditor`. Workspace page stays server-side.
+- `lib/project-access.ts` — `getAccessibleProject(roomId)` queries Prisma with OR: owner OR collaborator email. Used for both page-level access checks and canvas API route access checks (owner-or-collaborator), as opposed to the owner-only `getOwnedProject` helper used for project rename/delete.
+- Canvas architecture: `CanvasRoom` → `LiveblocksProvider` → `RoomProvider` → `ClientSideSuspense` → `CanvasEditor`. Workspace page stays server-side. `CanvasRoom` passes its `roomId` down to `CanvasEditor` as `projectId`, since the two values are identical by design.
 - `useLiveblocksFlow({ suspense: true })` hook wraps Liveblocks `useStorage` and `useMutation` to handle node/edge changes, connect actions, deletions, and setNodes/setEdges updates directly in room storage.
 - `NODE_TYPES = { canvasNode: CanvasNodeComponent }` and `EDGE_TYPES = { canvasEdge: CanvasEdgeComponent }` registered in `canvas-editor.tsx`.
 - Drag payload uses `DRAG_TYPE = "application/canvas-shape"` as the `dataTransfer` key. Payload shape: `{ shape, width, height }`.
@@ -65,6 +68,10 @@ Update this file whenever the current phase, active feature, or implementation s
 - `CanvasEdgeComponent` renders an invisible 20px hit path for easy mouse target selection and positions interactive label overlays via `EdgeLabelRenderer` and `getSmoothStepPath` coordinates.
 - Inline textarea/input editing and floating toolbars rely on `nodrag nopan` utility classes to prevent canvas panning/zooming or node dragging during text editing or color selection.
 - `useKeyboardShortcuts` isolates window keyboard listeners from firing shortcuts when focus is inside HTML `<input>`, `<textarea>`, or `isContentEditable` nodes.
+- Cross-boundary UI state (AI sidebar open/closed, canvas save status) uses React Context providers wrapping `EditorLayoutInner` (`AiSidebarProvider`, `SaveStatusProvider`), since `EditorNavbar` and the Liveblocks room tree sit on opposite sides of the `{children}` boundary in `EditorLayout` and can't be prop-drilled directly. `EditorLayoutInner` reads each context and passes plain props down into `EditorNavbar`.
+- `EditorLayout` is the single owner of `EditorNavbar` and `AiSidebar` — `WorkspaceShell` must never render either directly, to avoid duplicate-mount regressions.
+- Canvas persistence: Prisma (`canvasJsonPath` on `Project`) stores only the Vercel Blob URL; Vercel Blob stores the actual `{ nodes, edges }` JSON at a stable path (`canvas/{projectId}.json`, `addRandomSuffix: false`, `allowOverwrite: true`) so re-saves overwrite in place instead of orphaning old blobs.
+- Canvas load-on-mount only hydrates from the saved blob if the Liveblocks room is empty (`nodes.length === 0 && edges.length === 0`) at mount time; otherwise it's skipped entirely so active collaboration state is never clobbered.
 
 ## Session Notes
 
@@ -108,3 +115,20 @@ Update this file whenever the current phase, active feature, or implementation s
   - Created `hooks/use-keyboard-shortcuts.ts` to handle shortcut keydown listeners for zooming (`+`/`=`, `-`) and history undo/redo (`Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z`, `Cmd/Ctrl+Y`). Added check preventing activation during active text input editing.
   - Created `components/canvas/canvas-controls.tsx` floating control bar at bottom-left of the canvas. Grouped smooth-animated zoom buttons and Liveblocks undo/redo buttons with visual disable states (`opacity-30 pointer-events-none`).
   - Integrated `CanvasControls` inside `CanvasEditor`.
+- **2026-07-24 — Navbar/AI-sidebar deduplication fix (`20-navbar-dedup`)**
+  - Diagnosed duplicate `EditorNavbar` + `ShareDialog` rendering: `EditorLayout` rendered a navbar around `{children}`, and `WorkspaceShell` (rendered as those children) rendered its own second navbar and a second, dead (unreachable) `ShareDialog`.
+  - Removed the unused `shareOpen` state and dead `ShareDialog` instance from `WorkspaceShell`.
+  - Introduced `components/editor/ai-sidebar-context.tsx` (`AiSidebarProvider`/`useAiSidebar`) so `aiOpen` state can be shared between `EditorLayout` (owns `EditorNavbar`, the toggle trigger) and `WorkspaceShell`/`CanvasEditor` (need `aiOpen` for the `CanvasRoom`/presence UI), which sit on opposite sides of the `children` boundary.
+  - `EditorLayout` is now the sole renderer of `EditorNavbar` and `AiSidebar`; `WorkspaceShell` was reduced to just rendering `CanvasRoom` and reading `aiOpen` from context.
+  - Fixed floating `AiSidebar` panel's top offset from `top-16` (64px, mismatched against the `h-14`/56px navbar) to `top-[4.5rem]` (navbar height + `1rem`), matching the `1rem` inset used on `right-4`/`bottom-4` so all three margins are visually even.
+- **2026-07-24 — Canvas autosave (`21-canvas-autosave`)**
+  - Reviewed `prisma/model/project.prisma` — existing `canvasJsonPath` field reused directly for the Blob URL; no migration required.
+  - Installed `@vercel/blob`.
+  - Built `PUT`/`GET /api/projects/[projectId]/canvas` in `app/api/projects/[projectId]/canvas/route.ts`. `PUT` uploads `{ nodes, edges }` JSON via `put()` to a stable path (`canvas/{projectId}.json`, `allowOverwrite: true`) and writes the returned URL to `Project.canvasJsonPath`. `GET` reads the URL from Prisma and fetches/returns the JSON from Blob, defaulting to `{ nodes: [], edges: [] }` if nothing saved yet. Both routes gate access via `getAccessibleProject` (owner or collaborator) rather than owner-only.
+  - Created `contexts/save-status-context.tsx` (`SaveStatusProvider`/`useSaveStatus`) to carry save status (`idle` | `saving` | `saved` | `error`) across the `EditorLayout`/`{children}` boundary, mirroring the `AiSidebarContext` pattern from `20-navbar-dedup`.
+  - Created `hooks/use-canvas-autosave.ts` — debounces 1500ms off `nodes`/`edges` reference changes, aborts in-flight requests via `AbortController` on rapid edits, skips the first render after being enabled (avoids re-saving a just-loaded canvas), writes status into `SaveStatusContext`.
+  - Updated `CanvasRoom` to pass its `roomId` down to `CanvasEditor` as a new `projectId` prop.
+  - Updated `CanvasEditor`: added mount-only load effect — checks Liveblocks room storage for existing nodes/edges first; if empty, fetches the saved canvas via the new `GET` route and hydrates via `setNodes`/`setEdges`; if the room already has content, skips the fetch entirely. Wired `useCanvasAutosave` with `enabled` gated on load completion.
+  - Updated `EditorNavbar` with a `saveStatus` prop and a small non-interactive status indicator (`Loader2` spinning / `Check` / `AlertTriangle`), hidden entirely on `idle` so it stays invisible until the first autosave fires.
+  - Updated `EditorLayout` to wrap `EditorLayoutInner` in `SaveStatusProvider` (nested alongside `AiSidebarProvider`) and pass `saveStatus` from `useSaveStatus()` into `EditorNavbar`.
+  - **Unverified assumption:** `getAccessibleProject`'s exact signature was inferred from its usage in `WorkspacePage` (`getAccessibleProject(roomId)`, no separate `userId` arg) — the real `lib/project-access.ts` source wasn't available when this was written. Confirm signature matches before relying on the canvas routes' access checks.
