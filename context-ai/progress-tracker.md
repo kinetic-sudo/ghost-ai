@@ -36,7 +36,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## In Progress
 
-- None.
+- Frontend consumption of `AI_MUTATE_CANVAS` events via Liveblocks `useEventListener` to execute AI actions on the board.
 
 ## Next Up
 
@@ -132,3 +132,7 @@ Update this file whenever the current phase, active feature, or implementation s
   - Updated `EditorNavbar` with a `saveStatus` prop and a small non-interactive status indicator (`Loader2` spinning / `Check` / `AlertTriangle`), hidden entirely on `idle` so it stays invisible until the first autosave fires.
   - Updated `EditorLayout` to wrap `EditorLayoutInner` in `SaveStatusProvider` (nested alongside `AiSidebarProvider`) and pass `saveStatus` from `useSaveStatus()` into `EditorNavbar`.
   - **Unverified assumption:** `getAccessibleProject`'s exact signature was inferred from its usage in `WorkspacePage` (`getAccessibleProject(roomId)`, no separate `userId` arg) — the real `lib/project-access.ts` source wasn't available when this was written. Confirm signature matches before relying on the canvas routes' access checks.
+  - **2026-07-29 — AI Design Agent Implementation (`22-ai-design-agent`)**
+  - Updated Trigger.dev task file `trigger/design-agent.ts`.
+  - Integrated Gemini model (`gemini-1.5-pro`) to handle structural architectural canvas inputs via structured `zod` schemas.
+  - Interfaced with Liveblocks Node SDK to fire room `broadcastEvent` allowing simulated AI cursor movement/thinking state + live task status feedback directly aligned with original implementation guidelines.
