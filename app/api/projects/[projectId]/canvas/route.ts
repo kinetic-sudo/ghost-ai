@@ -19,6 +19,8 @@ export async function PUT(request: Request, { params }: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  console.log("[canvas-save] BLOB_READ_WRITE_TOKEN present:", !!process.env.BLOB_READ_WRITE_TOKEN);
+
   const { projectId } = await params;
   const project = await getAccessibleProject(projectId);
 
@@ -41,7 +43,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
       `canvas/${projectId}.json`,
       JSON.stringify({ nodes, edges }),
       {
-        access: "public",
+        access: "private",
         contentType: "application/json",
         addRandomSuffix: false,
         allowOverwrite: true,
@@ -56,6 +58,9 @@ export async function PUT(request: Request, { params }: RouteContext) {
     return NextResponse.json({ url: blob.url });
   } catch (err) {
     console.error("Failed to save canvas to Blob", err);
+    console.error("[canvas-save] FULL ERROR:", err);
+    console.error("[canvas-save] message:", err instanceof Error ? err.message : String(err));
+    console.error("[canvas-save] stack:", err instanceof Error ? err.stack : "no stack");
     return NextResponse.json(
       { error: "Failed to save canvas" },
       { status: 500 },
