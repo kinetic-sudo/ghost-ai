@@ -142,7 +142,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
 
             return (
               <button
-                key={colorOption.name}
+              key={colorOption.fill}
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -164,7 +164,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
                     ? "scale-105 ring-2 ring-white ring-offset-1 ring-offset-[#141414]"
                     : "opacity-80 hover:opacity-100"
                 )}
-                title={colorOption.name}
+                title={colorOption.fill}
               />
             );
           })}

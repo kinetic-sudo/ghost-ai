@@ -90,7 +90,7 @@ export function EditorNavbar({
         {/* Right — actions */}
         <div className="flex items-center gap-2">
         {projectId && saveIndicator && (
-           <div className="hidden md:flex items-center px-2">{saveIndicator}</div>
+           <div className="flex items-center px-2">{saveIndicator}</div>
           )}
           {/* Templates Trigger */}
           {(projectId || onOpenTemplates) && (
