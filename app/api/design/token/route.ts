@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { auth as triggerAuth } from "@trigger.dev/sdk";
+import { auth as triggerAuth } from "@trigger.dev/sdk/v3";
+
 
 import { prisma } from "@/lib/prisma";
 

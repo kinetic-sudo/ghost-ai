@@ -30,10 +30,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+ // Snapshot current canvas as context for the model. This is
+  // informational only — the task re-reads live storage right before it
+  // actually writes, so a stale snapshot here can never cause data loss.
+  let nodes: unknown[] = [];
+  let edges: unknown[] = [];
+  try {
+    const storage = await getLiveblocks().getStorageDocument(roomId, "json");
+    nodes = Array.isArray((storage as any)?.nodes) ? (storage as any).nodes : [];
+    edges = Array.isArray((storage as any)?.edges) ? (storage as any).edges : [];
+  } catch (err) {
+    console.error("Failed to read current canvas for AI context", err);
+  }
+
+
   const handle = await tasks.trigger<typeof designAgentTask>("design-agent", {
-    prompt,
-    roomId,
-  });
+        projectId,
+        roomId,
+        prompt,
+        nodes,
+        edges,
+       });
 
   const taskRun = await prisma.taskRun.create({
     data: {
