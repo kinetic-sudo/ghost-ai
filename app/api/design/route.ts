@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { tasks } from "@trigger.dev/sdk";
+import { getLiveblocks } from "@/lib/liveblocks";
+import { tasks } from "@trigger.dev/sdk/v3";
 
 import { prisma } from "@/lib/prisma";
 import { getAccessibleProject } from "@/lib/project-acess";
