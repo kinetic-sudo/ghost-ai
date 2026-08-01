@@ -25,7 +25,11 @@ declare global {
     };
 
     // Custom broadcast events between clients
-    RoomEvent: {};
+    RoomEvent: {
+      type: "AI_STATUS";
+      status: "start" | "processing" | "applying" | "complete" | "error";
+      message: string;
+    };
 
     // Comment thread metadata
     ThreadMetadata: {};
