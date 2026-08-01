@@ -21,6 +21,7 @@ import { useCanvasAutosave } from "@/hooks/use-canvas-autosave";
 import { StarterTemplatesModal } from "@/components/editor/starter-template-modal";
 import { type CanvasTemplate } from "@/components/editor/starter-template";
 import { useLiveblocksFlow } from "@/hooks/use-liveblocks-flow";
+import { AiStatusBanner } from "./ai-status-banner";
 import { DRAG_TYPE, type ShapeDragPayload } from "@/types/canvas";
 
 const NODE_TYPES = {
@@ -221,7 +222,7 @@ export function CanvasEditor({ projectId, aiOpen }: CanvasEditorProps) {
         {/* Real-time Collaboration Overlays */}
         <LiveCursors />
         <CollaboratorAvatar aiOpen={aiOpen} />
-
+        <AiStatusBanner />
         <ShapePanel />
       </div>
 
