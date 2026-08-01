@@ -16,6 +16,7 @@ import {
 // Payload — loosely-typed nodes/edges, mirroring generate-spec.ts's pattern
 // ---------------------------------------------------------------------------
 
+
 const nodeSchema = z.object({ id: z.string() }).passthrough();
 const edgeSchema = z.object({ id: z.string() }).passthrough();
 
