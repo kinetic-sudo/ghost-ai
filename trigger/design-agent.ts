@@ -16,6 +16,7 @@ import {
 // Payload — loosely-typed nodes/edges, mirroring generate-spec.ts's pattern
 // ---------------------------------------------------------------------------
 
+
 const nodeSchema = z.object({ id: z.string() }).passthrough();
 const edgeSchema = z.object({ id: z.string() }).passthrough();
 
@@ -265,7 +266,7 @@ export const designAgentTask = schemaTask({
       await publishStatus("processing", "Drafting the architecture…");
 
       const { object: actions } = await generateObject({
-        model: google("gemini-2.5-flash"),
+        model: google("gemini-3.5-flash"),
         system: SYSTEM_PROMPT,
         prompt: `${buildContext(nodes as CanvasNode[], edges as CanvasEdge[])}\n\n## User Request\n${prompt}`,
         schema: canvasActionSchema,
