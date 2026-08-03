@@ -1,6 +1,7 @@
 import { schemaTask, metadata, logger } from "@trigger.dev/sdk/v3";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { generateObject } from "ai";
+import { generateObject, NoObjectGeneratedError } from "ai";
+import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import { z } from "zod";
 
 import { getLiveblocks } from "@/lib/liveblocks";
@@ -90,7 +91,11 @@ const canvasActionSchema = z.array(
   ]),
 );
 
-type CanvasAction = z.infer<typeof canvasActionSchema>[number];
+const canvasResponseSchema = z.object({
+      actions: canvasActionSchema,
+    });
+    
+    type CanvasAction = z.infer<typeof canvasActionSchema>[number];
 
 // ---------------------------------------------------------------------------
 // AI agent identity — must satisfy the UserMeta shape in liveblocks.config.ts
@@ -265,12 +270,18 @@ export const designAgentTask = schemaTask({
 
       await publishStatus("processing", "Drafting the architecture…");
 
-      const { object: actions } = await generateObject({
+       const { object } = await generateObject({
         model: google("gemini-3.5-flash"),
         system: SYSTEM_PROMPT,
         prompt: `${buildContext(nodes as CanvasNode[], edges as CanvasEdge[])}\n\n## User Request\n${prompt}`,
-        schema: canvasActionSchema,
-      });
+        schema: canvasResponseSchema,
+        providerOptions: {
+                     google: {
+                       thinkingConfig: { thinkingLevel: "low" },
+                     } satisfies GoogleGenerativeAIProviderOptions,
+                   },
+    });
+       const actions = object.actions;
 
       await publishStatus(
         "applying",
@@ -301,6 +312,14 @@ export const designAgentTask = schemaTask({
 
       return { success: true, actionsApplied: actions.length };
     } catch (err) {
+             if (err instanceof NoObjectGeneratedError) {
+                logger.error("design-agent: schema validation failed", {
+                  roomId,
+                  text: err.text,
+                  finishReason: err.finishReason,
+                  cause: err.cause instanceof Error ? err.cause.message : String(err.cause),
+                });
+              }
       logger.error("design-agent: failed", {
         roomId,
         error: err instanceof Error ? err.message : String(err),
