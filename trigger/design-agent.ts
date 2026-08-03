@@ -42,60 +42,41 @@ const paletteIndexSchema = z
   .max(NODE_COLORS.length - 1)
   .describe("Index into the fixed color palette. Never invent a hex code.");
 
-const canvasActionSchema = z.array(
-  z.discriminatedUnion("type", [
-    z.object({
-      type: z.literal("ADD_NODE"),
-      id: z.string().describe("Short, unique, kebab-case id, e.g. 'auth-service'"),
-      shape: shapeEnum,
-      colorIndex: paletteIndexSchema,
-      label: z.string(),
-      x: z.number(),
-      y: z.number(),
-    }),
-    z.object({
-      type: z.literal("MOVE_NODE"),
-      id: z.string(),
-      x: z.number(),
-      y: z.number(),
-    }),
-    z.object({
-      type: z.literal("RESIZE_NODE"),
-      id: z.string(),
-      width: z.number().min(60),
-      height: z.number().min(40),
-    }),
-    z.object({
-      type: z.literal("UPDATE_NODE"),
-      id: z.string(),
-      label: z.string().optional(),
-      colorIndex: paletteIndexSchema.optional(),
-    }),
-    z.object({
-      type: z.literal("DELETE_NODE"),
-      id: z.string(),
-    }),
-    z.object({
-      type: z.literal("ADD_EDGE"),
-      id: z.string(),
-      source: z.string(),
-      target: z.string(),
-      sourceHandle: handleEnum,
-      targetHandle: handleEnum,
-      label: z.string().optional(),
-    }),
-    z.object({
-      type: z.literal("DELETE_EDGE"),
-      id: z.string(),
-    }),
-  ]),
-);
+  const canvasActionSchema = z.object({
+      type: z
+        .enum([
+          "ADD_NODE",
+          "MOVE_NODE",
+          "RESIZE_NODE",
+          "UPDATE_NODE",
+          "DELETE_NODE",
+          "ADD_EDGE",
+          "DELETE_EDGE",
+        ])
+        .describe("Which canvas action this entry performs."),
+      id: z
+        .string()
+        .describe(
+          "For ADD_NODE/ADD_EDGE: a new short kebab-case id. For all other types: the exact existing node/edge id to target.",
+        ),
+      shape: shapeEnum.optional().describe("Required for ADD_NODE only."),
+      colorIndex: paletteIndexSchema.optional().describe("Used by ADD_NODE (required) and UPDATE_NODE (optional)."),
+      label: z.string().optional().describe("Used by ADD_NODE (required), UPDATE_NODE (optional), and ADD_EDGE (optional)."),
+      x: z.number().optional().describe("Required for ADD_NODE and MOVE_NODE."),
+      y: z.number().optional().describe("Required for ADD_NODE and MOVE_NODE."),
+      width: z.number().optional().describe("Required for RESIZE_NODE."),
+      height: z.number().optional().describe("Required for RESIZE_NODE."),
+      source: z.string().optional().describe("Required for ADD_EDGE — the source node id."),
+      target: z.string().optional().describe("Required for ADD_EDGE — the target node id."),
+      sourceHandle: handleEnum.optional().describe("Required for ADD_EDGE."),
+      targetHandle: handleEnum.optional().describe("Required for ADD_EDGE."),
+    });
 
 const canvasResponseSchema = z.object({
-      actions: canvasActionSchema,
+    actions: z.array(canvasActionSchema),
     });
     
-    type CanvasAction = z.infer<typeof canvasActionSchema>[number];
+    type CanvasAction = z.infer<typeof canvasActionSchema>;
 
 // ---------------------------------------------------------------------------
 // AI agent identity — must satisfy the UserMeta shape in liveblocks.config.ts
@@ -150,8 +131,15 @@ Rules:
 - Space nodes at least 220px apart horizontally and 140px apart vertically so labels don't overlap.
 - Reuse the exact existing node ids shown in context for MOVE_NODE, RESIZE_NODE, UPDATE_NODE, DELETE_NODE, and as edge endpoints — never invent an id for something that isn't either already on the canvas or being created in this same batch via ADD_NODE.
 - Do not duplicate a node that already represents the same concept — extend or connect to the existing one instead.
-- For edges, prefer outgoing connections from the "right" handle and incoming connections to the "left" handle, unless the layout clearly calls for a different side.`;
-
+- For edges, prefer outgoing connections from the "right" handle and incoming connections to the "left" handle, unless the layout clearly calls for a different side.
+- Each action object has a "type" field plus every possible field, but only some fields apply per type — omit or ignore the rest:
+- ADD_NODE: id (new), shape, colorIndex, label, x, y
+- MOVE_NODE: id (existing), x, y
+- RESIZE_NODE: id (existing), width, height
+- UPDATE_NODE: id (existing), label and/or colorIndex
+- DELETE_NODE: id (existing)
+- ADD_EDGE: id (new), source, target, sourceHandle, targetHandle, label (optional)
+- DELETE_EDGE: id (existing edge id)`;
 // ---------------------------------------------------------------------------
 // Apply actions against a plain-array snapshot of nodes/edges
 // ---------------------------------------------------------------------------
@@ -167,7 +155,16 @@ function applyActions(
   for (const action of actions) {
     switch (action.type) {
       case "ADD_NODE": {
-        if (nodes.some((n) => n.id === action.id)) break; // avoid duplicate ids
+               if (
+                     action.shape === undefined ||
+                     action.colorIndex === undefined ||
+                     action.label === undefined ||
+                     action.x === undefined ||
+                     action.y === undefined
+                   ) {
+                     logger.warn("design-agent: skipping malformed ADD_NODE", { action });
+                     break;
+                   } 
         const palette = NODE_COLORS[action.colorIndex];
         const { width, height } = SHAPE_DEFAULTS[action.shape];
         nodes.push({
@@ -184,18 +181,33 @@ function applyActions(
         } as CanvasNode);
         break;
       }
-      case "MOVE_NODE":
-        nodes = nodes.map((n) =>
-          n.id === action.id ? { ...n, position: { x: action.x, y: action.y } } : n,
-        );
-        break;
-      case "RESIZE_NODE":
-        nodes = nodes.map((n) =>
-          n.id === action.id
-            ? { ...n, style: { ...n.style, width: action.width, height: action.height } }
-            : n,
-        );
-        break;
+            case "MOVE_NODE": {
+                if (action.x === undefined || action.y === undefined) {
+                  logger.warn("design-agent: skipping malformed MOVE_NODE", { action });
+                  break;
+                }
+                const { x, y } = action;
+                 nodes = nodes.map((n) =>
+                 n.id === action.id ? { ...n, position: { x: action.x, y: action.y } } : n,
+                  n.id === action.id ? { ...n, position: { x, y } } : n,
+                 );
+                 break;
+        
+      }
+      case "RESIZE_NODE": {
+                if (action.width === undefined || action.height === undefined) {
+                  logger.warn("design-agent: skipping malformed RESIZE_NODE", { action });
+                  break;
+                }
+                const { width, height } = action;
+                 nodes = nodes.map((n) =>
+                   n.id === action.id
+                    ? { ...n, style: { ...n.style, width: action.width, height: action.height } }
+                    ? { ...n, style: { ...n.style, width, height } }
+                     : n,
+                 );
+                 break;
+              }
       case "UPDATE_NODE": {
         const palette = action.colorIndex !== undefined ? NODE_COLORS[action.colorIndex] : undefined;
         nodes = nodes.map((n) =>
@@ -216,7 +228,11 @@ function applyActions(
         nodes = nodes.filter((n) => n.id !== action.id);
         edges = edges.filter((e) => e.source !== action.id && e.target !== action.id);
         break;
-      case "ADD_EDGE":
+        case "ADD_EDGE": {
+                    if (!action.source || !action.target || !action.sourceHandle || !action.targetHandle) {
+                      logger.warn("design-agent: skipping malformed ADD_EDGE", { action });
+                      break;
+                    }
         if (edges.some((e) => e.id === action.id)) break;
         edges.push({
           id: action.id,
@@ -229,6 +245,7 @@ function applyActions(
           data: action.label ? { label: action.label } : {},
         } as CanvasEdge);
         break;
+    }
       case "DELETE_EDGE":
         edges = edges.filter((e) => e.id !== action.id);
         break;
