@@ -1,6 +1,7 @@
 import { schemaTask, metadata, logger } from "@trigger.dev/sdk/v3";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateObject, NoObjectGeneratedError } from "ai";
+import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import { z } from "zod";
 
 import { getLiveblocks } from "@/lib/liveblocks";
@@ -270,10 +271,15 @@ export const designAgentTask = schemaTask({
       await publishStatus("processing", "Drafting the architecture…");
 
        const { object } = await generateObject({
-        model: google("gemini-2.5-flash"),
+        model: google("gemini-3.5-flash"),
         system: SYSTEM_PROMPT,
         prompt: `${buildContext(nodes as CanvasNode[], edges as CanvasEdge[])}\n\n## User Request\n${prompt}`,
         schema: canvasResponseSchema,
+        providerOptions: {
+                     google: {
+                       thinkingConfig: { thinkingLevel: "low" },
+                     } satisfies GoogleGenerativeAIProviderOptions,
+                   },
     });
        const actions = object.actions;
 
