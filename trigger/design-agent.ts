@@ -187,10 +187,9 @@ function applyActions(
                   break;
                 }
                 const { x, y } = action;
-                 nodes = nodes.map((n) =>
-                 n.id === action.id ? { ...n, position: { x: action.x, y: action.y } } : n,
-                  n.id === action.id ? { ...n, position: { x, y } } : n,
-                 );
+                nodes = nodes.map((n) =>
+                    n.id === action.id ? { ...n, position: { x, y } } : n,
+                  );
                  break;
         
       }
@@ -200,12 +199,11 @@ function applyActions(
                   break;
                 }
                 const { width, height } = action;
-                 nodes = nodes.map((n) =>
-                   n.id === action.id
-                    ? { ...n, style: { ...n.style, width: action.width, height: action.height } }
-                    ? { ...n, style: { ...n.style, width, height } }
-                     : n,
-                 );
+                nodes = nodes.map((n) =>
+                    n.id === action.id
+                     ? { ...n, style: { ...n.style, width, height } }
+                    : n,
+                  );
                  break;
               }
       case "UPDATE_NODE": {
