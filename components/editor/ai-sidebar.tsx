@@ -144,7 +144,8 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
                     <button
                       key={chip}
                       onClick={() => handleSend(chip)}
-                      className="w-full rounded-full border border-white/5 bg-[#1A182D] py-3 px-4 text-center text-xs font-medium text-[#B8A6FC] shadow-sm transition-colors hover:bg-[#23203B]"
+                      disabled={isGenerating}
+                      className="w-full rounded-full border border-white/5 bg-[#1A182D] py-3 px-4 text-center text-xs font-medium text-[#B8A6FC] shadow-sm transition-colors hover:bg-[#23203B] disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       {chip}
                     </button>
@@ -175,26 +176,37 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
 
           {/* Input Area */}
           <div className="p-4">
+            {isGenerating && (
+              <div className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-medium text-[#B8A6FC]">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                {aiStatus?.text ?? "Ghost AI is working…"}
+              </div>
+            )}
             <div className="relative flex flex-col rounded-2xl border border-white/10 bg-[#151422] p-3 shadow-inner">
               <Textarea
                 ref={textareaRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
+                disabled={isGenerating}
                 placeholder="Describe your system..."
-                className="min-h-[72px] max-h-[160px] w-full resize-none border-0 bg-transparent p-1 text-xs text-white placeholder:text-white/30 focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="min-h-[72px] max-h-[160px] w-full resize-none border-0 bg-transparent p-1 text-xs text-white placeholder:text-white/30 focus-visible:ring-0 focus-visible:ring-offset-0 disabled:opacity-50"
               />
               <div className="flex items-center justify-between pt-2">
                 <span className="select-none text-[10px] text-white/30">
-                  Shift+Enter for newline
+                  {isGenerating ? "Generating architecture…" : "Shift+Enter for newline"}
                 </span>
                 <Button
                   size="icon"
                   onClick={() => handleSend()}
-                  disabled={!input.trim()}
+                  disabled={!input.trim() || isGenerating}
                   className="h-8 w-8 shrink-0 rounded-full bg-[#6E56CF] text-white transition-all hover:bg-[#5b48bd] disabled:bg-white/10 disabled:opacity-30"
                 >
-                  <Send className="h-3.5 w-3.5" />
+                  {isGenerating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Send className="h-3.5 w-3.5" />
+                  )}
                 </Button>
               </div>
             </div>
@@ -207,9 +219,16 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
             <Button 
               onClick={() => {}}
               disabled={isGenerating}
-              className="w-full rounded-full border border-white/5 bg-[#1A182D] py-3 px-4 text-center text-xs font-medium text-[#B8A6FC] shadow-sm transition-colors hover:bg-[#23203B] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full rounded-full bg-[#6E56CF] font-medium text-white shadow-lg transition-all hover:bg-[#5b48bd] disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Generate Spec
+              {isGenerating ? (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Generating…
+                </span>
+              ) : (
+                "Generate Spec"
+              )}
             </Button>
 
             <div className="mt-2">
