@@ -4,11 +4,11 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Phase
 
-- Phase 2: Realtime collaboration infrastructure
+- Phase 3: AI generation infrastructure
 
 ## Current Goal
 
-- Ready for presence UI (live cursors, user avatars — already implemented via `LiveCursors`/`CollaboratorAvatar`, confirm polish) and full AI sidebar backend implementation.
+- Shared AI activity (thinking state, status feed, cursor badges) now visible to every room participant, independent of who triggered generation. Next: finish live-cursor thinking badges (blocked on seeing `live-cursor.tsx`), then wire `AiSidebar`'s send flow to actually call `POST /api/ai/design`.
 
 ## Completed
 
@@ -16,7 +16,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - `02-editor` — `EditorNavbar`, `ProjectSidebar`, `EditorDialog`, `EditorLayout` shell.
 - `03-auth` — Clerk provider, sign-in/sign-up, `proxy.ts` route protection, `UserButton` in navbar.
 - `04-project-dialogs` — Editor home screen, Create/Rename/Delete dialogs, sidebar with mock data.
-- `05-prisma` — Multi-file schema, `Project` + `ProjectCollaborator` models, `lib/prisma.ts` (Accelerate), `prisma.config.ts` loading `.env.local`. `db push` confirmed working.
+- `05-prisma` — Multi-file schema, `Project` + `ProjectCollaborator` models, `lib/prisma.ts`, `prisma.config.ts` loading `.env.local`. `db push` confirmed working.
 - `06-project-api` — REST routes GET/POST `/api/projects`, PATCH/DELETE `/api/projects/[projectId]`. Auth + owner checks.
 - `07-wire-editor-home` — Server-side data fetch, `useProjectActions` hook, real API mutations, navigate/refresh/redirect wired.
 - `08-editor-workspace-shell` — `/editor/[roomId]` workspace page, access checks, `AccessDenied` component, `lib/project-access.ts` helpers, workspace shell with AI sidebar placeholder.
@@ -31,16 +31,23 @@ Update this file whenever the current phase, active feature, or implementation s
 - `17-canvas-controls` — Added pill-shaped control bar at bottom-left (`CanvasControls`) containing animated zoom controls (`zoomIn`, `zoomOut`, `fitView`) and Liveblocks history controls (`useUndo`, `useRedo`, `useCanUndo`, `useCanRedo`). Built `useKeyboardShortcuts` hook to handle `+`/`=` (zoom in), `-` (zoom out), `Cmd/Ctrl+Z` (undo), and `Cmd/Ctrl+Shift+Z` / `Cmd/Ctrl+Y` (redo), automatically skipping trigger events when focused on editable input fields or textareas.
 - `18-starter-templates` — `StarterTemplatesModal`, `CanvasTemplate` type, `handleImportTemplate` wired in `CanvasEditor` via `setNodes`/`setEdges` + `fitView`. Triggered from `EditorNavbar` via `onOpenTemplates` prop or `open-templates` custom window event.
 - `19-canvas-presence` — `CollaboratorAvatar` and `LiveCursors` components rendered as overlays inside `CanvasEditor`. Pointer move/leave handlers update `useMyPresence()` cursor state.
-- `20-navbar-dedup` — Fixed duplicate `EditorNavbar`/`AiSidebar` rendering caused by both `EditorLayout` and `WorkspaceShell` independently mounting them. Introduced `AiSidebarProvider`/`useAiSidebar` context (`components/editor/ai-sidebar-context.tsx`) so `EditorLayout` is now the single owner of both `EditorNavbar` and `AiSidebar`; `WorkspaceShell` reads `aiOpen` from context and only renders `CanvasRoom`. Removed dead unused `shareOpen` state/`ShareDialog` instance from `WorkspaceShell` (the real one lives in `EditorNavbar`). Fixed `AiSidebar` floating panel top offset (`top-16` → `top-[4.5rem]`) to align its 16px inset with the `right-4`/`bottom-4` edges relative to the `h-14` navbar.
-- `21-canvas-autosave` — `PUT`/`GET /api/projects/[projectId]/canvas` routes (Vercel Blob for canvas JSON, Prisma `canvasJsonPath` reused for the blob URL — no schema migration needed). `hooks/use-canvas-autosave.ts` debounces saves (1500ms) off Liveblocks `nodes`/`edges`, aborts in-flight requests on rapid changes, skips the first enabling render. `contexts/save-status-context.tsx` (`SaveStatusProvider`/`useSaveStatus`) bridges save status from `CanvasEditor` (inside the Liveblocks room tree) up to `EditorNavbar` (in `EditorLayout`, outside it) — same cross-boundary pattern as `AiSidebarContext`. `CanvasEditor` now takes a `projectId` prop (passed from `CanvasRoom`'s `roomId`) and runs a mount-only load effect: hydrates from the saved blob only if the room is empty, otherwise skips entirely to avoid overwriting active collaboration.
+- `20-navbar-dedup` — Fixed duplicate `EditorNavbar`/`AiSidebar` rendering caused by both `EditorLayout` and `WorkspaceShell` independently mounting them. Introduced `AiSidebarProvider`/`useAiSidebar` context so `EditorLayout` is now the single owner of both `EditorNavbar` and `AiSidebar`; `WorkspaceShell` reads `aiOpen` from context and only renders `CanvasRoom`. Removed dead unused `shareOpen` state/`ShareDialog` instance from `WorkspaceShell`. Fixed `AiSidebar` floating panel top offset (`top-16` → `top-[4.5rem]`) to align its 16px inset with the `right-4`/`bottom-4` edges relative to the `h-14` navbar.
+- `21-canvas-autosave` — `PUT`/`GET /api/projects/[projectId]/canvas` routes (Vercel Blob for canvas JSON, Prisma `canvasJsonPath` reused for the blob URL). `hooks/use-canvas-autosave.ts` debounces saves (1500ms), aborts in-flight requests, skips the first enabling render. `contexts/save-status-context.tsx` bridges save status across the `EditorLayout`/`{children}` boundary. `CanvasEditor` runs a mount-only load effect: hydrates from the saved blob only if the room is empty. Fixed a production bug where `put()` defaulted to `access: "public"` against a store configured for private access — switched to `access: "private"` with a bearer-token read on the `GET` route.
+- `22-design-agent-api` — Trigger.dev backend wiring for design generation, no AI logic yet. `trigger.config.ts` (`@trigger.dev/sdk/v3`, real `project` ref). `TaskRun` Prisma model tracks runs (`runId` unique, compound index on `userId`+`projectId`). `POST /api/ai/design` validates input, checks access via `getAccessibleProject`, triggers `design-agent`, stores a `TaskRun`, returns `runId`. `POST /api/ai/design/token` verifies run ownership via `TaskRun.userId`, mints a Trigger.dev `auth.createPublicToken` scoped to `read: { runs: [runId] }`. `trigger/design-agent.ts` was a minimal placeholder — no AI calls (fully rewritten in `23-design-agent-logic`).
+- `23-design-agent-logic` — Full design agent implementation. `trigger/design-agent.ts` rewritten as a `schemaTask` (matching the sibling `generate-spec.ts` task's convention). Uses `generateObject` with `createGoogleGenerativeAI({ apiKey: process.env.GOOGLE_AI_API_KEY })` and `google("gemini-3.5-flash")` (the account is a "new" Google AI project — `gemini-2.5-flash` is no longer available to it) against a schema of 7 canvas action types, constrained to real `NODE_SHAPES`/`NODE_COLORS`/`SHAPE_DEFAULTS`. **Debugged a multi-round `AI_NoObjectGeneratedError`**: root cause was `z.discriminatedUnion` at the schema root — Gemini's structured-output mode has poor `anyOf`/union support (matches Vertex's own docs listing `z.union` as unsupported). Fixed by flattening to one object with a `type` enum and all type-specific fields optional, validated at apply-time instead of by the schema shape; also wrapped the array response in `{ actions: [...] }` (bare top-level arrays are unreliable for Gemini's schema converter) and added `thinkingConfig: { thinkingLevel: "low" }` to reduce reasoning-token interference with JSON parsing. Canvas mutated durably via `liveblocks.mutateStorage`, re-reading live `root.get("nodes")`/`root.get("edges")` at write time rather than trusting the context snapshot passed into the task, so concurrent collaborator edits are never clobbered. AI presence via `liveblocks.setPresence`. **Status broadcasting from this unit (`AI_STATUS` via `liveblocks.broadcastEvent` + a custom `RoomEvent` type) was superseded and removed in `24-ai-presence-spec`** in favor of Liveblocks' dedicated Feeds primitive.
+- `24-ai-presence-spec` — Shared AI activity UI/presence, no new generation logic. Migrated AI status from `23-design-agent-logic`'s ad-hoc `broadcastEvent` onto Liveblocks **Feeds** (`liveblocks.createFeed`/`createFeedMessage` server-side, `useFeedMessages` client-side) — the dedicated primitive for "AI activity logs, agent status," per Liveblocks' own docs, rather than the parallel custom-event channel built in `23`. New `types/tasks.ts` defines `aiStatusFeedMessageSchema` (Zod: `kind` optional, `status` enum, `text` optional) shared by server and client. New `lib/ai-status-feed.ts` (server-only — imports `@liveblocks/node`) exposes `ensureAiStatusFeed`/`publishAiStatus`, idempotent against "feed already exists." New `hooks/use-ai-status-feed.ts` (client) wraps `useFeedMessages("ai-status-feed")`, returns only the latest message, validated through the schema before use. `design-agent.ts`'s `publishStatus` now calls `publishAiStatus` instead of `broadcastEvent`. `AiSidebar` disables the chat textarea/starter chips and shows a spinner on the send button while `isGenerating` is true, with a small status line reading the feed's latest `text` — rest of the sidebar (tabs, close button) stays fully interactive per scope limits. `ai-status-banner.tsx` (canvas overlay, from `23`) repointed at the same feed hook instead of the old broadcast listener, so there's one source of truth instead of two. Reverted `liveblocks.config.ts`'s `RoomEvent` typing back to `{}` since the custom `AI_STATUS` event type it held is no longer used anywhere. **Live-cursor thinking badges (spec item 4) not yet implemented** — blocked on seeing `components/editor/canvas/live-cursor.tsx`, never reviewed in this thread.
 
 ## In Progress
 
-- Frontend consumption of `AI_MUTATE_CANVAS` events via Liveblocks `useEventListener` to execute AI actions on the board.
+- `24-ai-presence-spec` item 4 — live cursor `isThinking` spinner badges. Waiting on `live-cursor.tsx` source before writing the diff.
 
 ## Next Up
 
-- AI sidebar implementation (real backend — currently `AiSidebar` is a UI shell with mock `setTimeout` responses and a disabled Specs download button).
+- Finish `24`'s live-cursor badges once the file is provided.
+- Wire `AiSidebar`'s send flow to actually call `POST /api/ai/design` → `POST /api/ai/design/token` — the sidebar now has full loading/disabled UI (`24`) and the backend is fully functional (`23`), but nothing connects them yet; `handleSend` still only appends a local mock message.
+- Add a real asset at `/ghost-ai-avatar.png` — still a placeholder path with no image behind it.
+- Investigate why the person's local copy of this tracker file has twice reverted to an earlier state after being regenerated (missing `22`+`23` on this upload, missing just `22` on the previous one) — worth checking whether an editor/sync tool is overwriting it with a stale cached version before re-upload.
+- Fix the "New Project" dialog's misleading URL preview (`/editor/<slug>`) vs. the real post-creation URL (`/editor/<cuid>`) — flagged mid-thread, not yet resolved; needs the dialog component to fix properly.
 
 ## Open Questions
 
@@ -50,28 +57,31 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Route protection uses protected-first `proxy.ts`: only sign-in/sign-up paths are public.
 - Editor workspace lives at `/editor`; `/` redirects by auth state.
-- Workspace route is `/editor/[roomId]` where `roomId` = Prisma project `id` (cuid). Project ID and Liveblocks room ID are the same value.
+- Workspace route is `/editor/[roomId]` where `roomId` = Prisma project `id` (cuid) — **not** the human-readable slug shown in the "New Project" dialog's URL preview; that preview is currently misleading (see Next Up).
 - Sidebar: fixed overlay, `rounded-2xl` card, collapses to `N` button at bottom-left.
 - Prisma multi-file schema. `prisma.config.ts` at project root parses `.env.local` manually.
-- `lib/prisma.ts` uses `@prisma/extension-accelerate` with `accelerateUrl`. Named export `{ prisma }`.
-- API routes use `auth()` from `@clerk/nextjs/server`. Unauthenticated → 401. Non-owner → 403. `params` awaited (Next.js 15).
-- `useProjectActions` owns all mutations. Dialog state in `ProjectDialogsProvider` context. `activeProjectId` resolved via `usePathname()`.
-- `lib/project-access.ts` — `getAccessibleProject(roomId)` queries Prisma with OR: owner OR collaborator email. Used for both page-level access checks and canvas API route access checks (owner-or-collaborator), as opposed to the owner-only `getOwnedProject` helper used for project rename/delete.
-- Canvas architecture: `CanvasRoom` → `LiveblocksProvider` → `RoomProvider` → `ClientSideSuspense` → `CanvasEditor`. Workspace page stays server-side. `CanvasRoom` passes its `roomId` down to `CanvasEditor` as `projectId`, since the two values are identical by design.
-- `useLiveblocksFlow({ suspense: true })` hook wraps Liveblocks `useStorage` and `useMutation` to handle node/edge changes, connect actions, deletions, and setNodes/setEdges updates directly in room storage.
+- `lib/prisma.ts` uses the generated `PrismaClient` from `@/app/generated/prisma/client` with the `@prisma/adapter-pg` (`PrismaPg`) driver adapter over `DATABASE_URL`, cached on `globalThis` in non-production. Named export `{ prisma }`.
+- API routes use `auth()` from `@clerk/nextjs/server`. Unauthenticated → 401. Non-owner (where ownership is required) → 403/404. `params` awaited (Next.js 15).
+- `lib/project-access.ts` — `getAccessibleProject(roomId)` resolves identity internally via `getCurrentIdentity()`, queries with `OR: [{ ownerId }, { collaborators: { some: { email } } }]`. Used for page-level access checks and owner-or-collaborator API checks (canvas save/load, design-agent trigger/token), as opposed to the owner-only `getOwnedProject` used for rename/delete.
+- Canvas architecture: `CanvasRoom` → `LiveblocksProvider` → `RoomProvider` → `ClientSideSuspense` → `CanvasEditor`. `CanvasRoom` passes its `roomId` down as `projectId`, since the two are identical by design.
+- `useLiveblocksFlow({ suspense: true })` — client-only (React hooks). Trigger.dev tasks can't use it; `trigger/design-agent.ts` mirrors the same storage read/replace-whole-array pattern server-side via `liveblocks.mutateStorage`/`root.get("nodes")`/`root.set("nodes", ...)`.
 - `NODE_TYPES = { canvasNode: CanvasNodeComponent }` and `EDGE_TYPES = { canvasEdge: CanvasEdgeComponent }` registered in `canvas-editor.tsx`.
-- Drag payload uses `DRAG_TYPE = "application/canvas-shape"` as the `dataTransfer` key. Payload shape: `{ shape, width, height }`.
-- Node ID format: `{shape}-{Date.now()}-{counter}` — monotonic session counter avoids ID collisions during rapid drops.
-- Drop position: `screenToFlowPosition({ x: clientX - width/2, y: clientY - height/2 })` — offsets by half the node size so the drop lands centered under the cursor.
-- `CanvasNodeComponent` utilizes separate handlers for traditional CSS-styled primitives and vector-scalable SVG geometries. Drag images rely on HTML5 `setDragImage()` referencing off-screen transient DOM objects to generate native cursors.
-- Connection handles use explicit string `id` attributes (`top`, `right`, `bottom`, `left`) with `ConnectionMode.Loose` to allow any-handle-to-any-handle connections across nodes.
-- `CanvasEdgeComponent` renders an invisible 20px hit path for easy mouse target selection and positions interactive label overlays via `EdgeLabelRenderer` and `getSmoothStepPath` coordinates.
-- Inline textarea/input editing and floating toolbars rely on `nodrag nopan` utility classes to prevent canvas panning/zooming or node dragging during text editing or color selection.
-- `useKeyboardShortcuts` isolates window keyboard listeners from firing shortcuts when focus is inside HTML `<input>`, `<textarea>`, or `isContentEditable` nodes.
-- Cross-boundary UI state (AI sidebar open/closed, canvas save status) uses React Context providers wrapping `EditorLayoutInner` (`AiSidebarProvider`, `SaveStatusProvider`), since `EditorNavbar` and the Liveblocks room tree sit on opposite sides of the `{children}` boundary in `EditorLayout` and can't be prop-drilled directly. `EditorLayoutInner` reads each context and passes plain props down into `EditorNavbar`.
-- `EditorLayout` is the single owner of `EditorNavbar` and `AiSidebar` — `WorkspaceShell` must never render either directly, to avoid duplicate-mount regressions.
-- Canvas persistence: Prisma (`canvasJsonPath` on `Project`) stores only the Vercel Blob URL; Vercel Blob stores the actual `{ nodes, edges }` JSON at a stable path (`canvas/{projectId}.json`, `addRandomSuffix: false`, `allowOverwrite: true`) so re-saves overwrite in place instead of orphaning old blobs.
-- Canvas load-on-mount only hydrates from the saved blob if the Liveblocks room is empty (`nodes.length === 0 && edges.length === 0`) at mount time; otherwise it's skipped entirely so active collaboration state is never clobbered.
+- Drag payload: `DRAG_TYPE = "application/canvas-shape"`, `{ shape, width, height }`. Node ID format: `{shape}-{Date.now()}-{counter}`. AI-generated node ids are short kebab-case strings chosen by the model instead, since edges need to reference them by string within the same generation batch; a defensive dedup check silently skips `ADD_NODE`/`ADD_EDGE` on id collision.
+- Drop position: `screenToFlowPosition({ x: clientX - width/2, y: clientY - height/2 })`.
+- Connection handles use explicit string `id`s (`top`, `right`, `bottom`, `left`) with `ConnectionMode.Loose`. Same four-value enum constrains the AI agent's edge actions.
+- `nodrag nopan` utility classes prevent canvas panning/node dragging during inline text editing or toolbar interaction. `useKeyboardShortcuts` isolates shortcuts from firing while focus is inside an editable field.
+- Cross-boundary UI state (AI sidebar open/closed, canvas save status) uses React Context wrapping `EditorLayoutInner` (`AiSidebarProvider`, `SaveStatusProvider`), since `EditorNavbar` and the Liveblocks room tree sit on opposite sides of the `{children}` boundary. `EditorLayout` is the single owner of `EditorNavbar` and `AiSidebar` — `WorkspaceShell` must never render either directly.
+- Canvas persistence: Prisma (`canvasJsonPath` on `Project`) stores only the Vercel Blob URL; Blob stores the actual `{ nodes, edges }` JSON at a stable path (`canvas/{projectId}.json`, `allowOverwrite: true`). The store is **private** — reads need the `BLOB_READ_WRITE_TOKEN` as a bearer credential. Canvas load-on-mount only hydrates from the saved blob if the room is empty at mount time.
+- Trigger.dev: `trigger.config.ts` uses `@trigger.dev/sdk/v3` throughout (`schemaTask`, `metadata`, `logger`, `tasks`, `auth`) — confirmed against the real project, not the v4 unified import `22-design-agent-api` initially assumed.
+- `TaskRun` Prisma model is the source of truth for run ownership: `POST /api/ai/design/token` checks `TaskRun.userId === requesting user`, since a token grants read access to one specific run, not general project access.
+- `lib/liveblocks.ts` exports a cached-on-`globalThis` `getLiveblocks(): Liveblocks` singleton (same pattern as `lib/prisma.ts`). Server code must reuse this singleton rather than instantiating a second `new Liveblocks(...)`.
+- Liveblocks server-side primitives in use (`@liveblocks/node`, all flat top-level methods — no `.room(id)` chaining): `mutateStorage(roomId, ({root}) => {...})` for durable Storage writes; `setPresence(roomId, {userId, userInfo, data, ttl})` for ephemeral non-WebSocket presence (shows up in `useOthers()`/avatar stacks); `getStorageDocument(roomId, "json")` for one-off reads; `createFeed`/`createFeedMessage` for the AI status feed (see below).
+- **Liveblocks Feeds is the sanctioned primitive for AI activity/status streams** — a distinct feature from Presence/Storage/Broadcast, purpose-built for "chat messages, agent logs, workflow events." `24-ai-presence-spec` migrated AI status onto it; a custom `broadcastEvent`-based channel (as `23` originally built) counts as "parallel realtime state" and should be avoided for this kind of data going forward.
+- `ai-status-feed` is a single, generic Liveblocks Feed per room (feed ID is a fixed constant, not per-task) — messages carry an optional `kind: "design" | "spec"` discriminator so both the design agent and a future spec-generation task can publish to the same feed without a schema change. Only the latest message is ever read; full feed history is explicitly out of scope per `24`'s scope limits.
+- AI agent identity: `userId: "ghost-ai"`, `userInfo: { name: "Ghost AI", avatar: "/ghost-ai-avatar.png", color: "#8B5CF6" }` (matches existing AI-branding purple elsewhere in the app). `/ghost-ai-avatar.png` is still a placeholder path — no real asset behind it yet.
+- Design-agent color enforcement: the model is never asked to produce a hex code directly — actions carry a `colorIndex` (0 to `NODE_COLORS.length - 1`); the real `fill`/`text` hex pair is always looked up server-side after generation.
+- Design-agent durability: the task reads a canvas snapshot from `POST /api/ai/design` purely as **prompt context** for Gemini. The actual mutation re-reads live storage inside `mutateStorage`'s callback at write time, so a stale context snapshot can never overwrite concurrent human edits.
+- Gemini structured-output reliability (from debugging `23`): avoid `z.discriminatedUnion`/`z.union` at the top of a `generateObject` schema against the Google provider — flatten to one object with optional fields instead, and always wrap array responses in `{ items: [...] }` rather than a bare top-level array. Both are known Gemini/Vertex schema-conversion limitations, not AI SDK bugs.
 
 ## Session Notes
 
@@ -79,60 +89,35 @@ Update this file whenever the current phase, active feature, or implementation s
 - **2025-06-19 — Editor chrome (`02-editor`)** — navbar, sidebar, dialog shell.
 - **2025-06-21 — Auth (`03-auth`)** — Clerk, sign-in/up, proxy, UserButton.
 - **2025-06-22 — Project dialogs (`04-project-dialogs`)** — mock data, Create/Rename/Delete dialogs.
-- **2025-06-24 — Prisma (`05-prisma`)** — schema, models, Accelerate client, prisma.config.ts.
+- **2025-06-24 — Prisma (`05-prisma`)** — schema, models, client, prisma.config.ts.
 - **2025-06-24 — Project API (`06-project-api`)** — REST routes, auth + owner checks.
 - **2025-06-25 — Wire editor home (`07-wire-editor-home`)** — server fetch, useProjectActions, real mutations.
 - **2025-06-25 — Editor workspace shell (`08-editor-workspace-shell`)** — workspace page, access checks, sidebar active state.
 - **2025-07-11 — Share dialog (`09-share-dialog`)** — collaborator API, useShareDialog, ShareDialog, EditorNavbar wired.
 - **2025-07-14 — Liveblocks setup (`10-liveblocks-setup`)** — config types, server client, auth route.
 - **2025-07-16 — Base canvas (`11-base-canvas`)** — canvas-room, canvas-editor, types, WorkspaceShell updated.
-- **2025-07-16 — Shape panel (`12-shape-panel`)**
-  - `types/canvas.ts` — extended: `DRAG_TYPE = "application/canvas-shape"`, `ShapeDragPayload { shape, width, height }`, `DEFAULT_NODE_COLOR = NODE_COLORS[0]`, `CanvasEdgeData { label? }`.
-  - `components/canvas/canvas-node.tsx` — `CanvasNodeComponent` (memo). Renders bordered rectangle with label centered. Handles on all 4 sides (source type, hidden until hover via opacity). Uses `data.color` / `data.textColor` with `DEFAULT_NODE_COLOR` fallback. Selected state shows `#00E5FF` border + ring.
-  - `components/canvas/shape-panel.tsx` — `ShapePanel` renders a `position: absolute bottom-6` pill-shaped toolbar. One `ShapeButton` per shape. `onDragStart` sets `dataTransfer` with `DRAG_TYPE` key and JSON-serialised `ShapeDragPayload`. Lucide icons: `RectangleHorizontal`, `Diamond`, `Circle`, `Pill`, `Cylinder`, `Hexagon`.
-  - `components/canvas/canvas-editor.tsx` — `NODE_TYPES = { canvasNode: CanvasNodeComponent }` registered locally. `onDragOver` allows copy. `onDrop` reads `DRAG_TYPE` payload, calls `screenToFlowPosition({ x: clientX - w/2, y: clientY - h/2 })`, creates `CanvasNode` with `type: "canvasNode"`, empty label, default color, dragged shape, calls `setNodes(prev => [...prev, newNode])`. `ShapePanel` rendered as overlay inside the wrapper div.
-- **2026-07-19 — Shape rendering (`13-shape-rendering`)**
-  - Updated `components/canvas/canvas-node.tsx` to handle distinct logic sets dividing scalable SVG elements and basic CSS geometry.
-  - Implemented dynamic off-screen DOM injection with HTML5 `setDragImage()` in `components/canvas/shape-panel.tsx` to securely track visual proxies matching drop-scale sizing directly to the user drag action natively.
-- **2026-07-20 — Node editing, connections & deletion fix (`14-node-editing`)**
-  - Integrated `<NodeResizer>` with subtle handles for scaling controls.
-  - Added double-click event listener to trigger inline label editing via centered `<textarea>` with `nodrag nopan` styling.
-  - Synchronized text modifications live with `updateNodeData`.
-  - Passed `onConnect` and `onDelete` directly from `useLiveblocksFlow` to `<ReactFlow>` to persist edge connections and shape deletions into Liveblocks room storage.
-  - Assigned explicit `id` parameters (`top`, `right`, `bottom`, `left`) to `<Handle>` elements to restore proper edge connections.
-- **2026-07-20 — Node color toolbar (`15-color-toolbar`)**
-  - Created floating node toolbar displaying color swatches defined in `types/canvas.ts`.
-  - Swatch interaction updates both background (`color`) and matching `textColor` dynamically via `updateNodeData`.
-  - Active color swatches display highlighted outline rings; hover interactions show a glow effect matching the swatch text color.
-  - Applied `nodrag nopan` classes across the toolbar to prevent dragging nodes or panning canvas when changing color options.
-- **2026-07-20 — Custom canvas edges & Liveblocks hook (`16-edge-behavior`)**
-  - Created `hooks/use-liveblocks-flow.ts` to connect React Flow actions (`onNodesChange`, `onEdgesChange`, `onConnect`, `onDelete`, `setNodes`, `setEdges`) directly to Liveblocks room storage mutations.
-  - Built `CanvasEdgeComponent` utilizing `getSmoothStepPath` right-angle routing, closed arrowhead markers, and `#00E5FF` hover/selection highlights.
-  - Added wide 20px hit-path to ensure smooth edge hovering and double-clicking.
-  - Integrated connection handles on all 4 node sides fading in on hover with `ConnectionMode.Loose`.
-  - Implemented inline edge label editing via `EdgeLabelRenderer` placed at midpoint coordinates, featuring auto-scaling inputs, pill badge renders, faint "+ Label" active hints, and `nodrag nopan` canvas isolation.
-- **2026-07-20 — Canvas controls & keyboard shortcuts (`17-canvas-controls`)**
-  - Created `hooks/use-keyboard-shortcuts.ts` to handle shortcut keydown listeners for zooming (`+`/`=`, `-`) and history undo/redo (`Cmd/Ctrl+Z`, `Cmd/Ctrl+Shift+Z`, `Cmd/Ctrl+Y`). Added check preventing activation during active text input editing.
-  - Created `components/canvas/canvas-controls.tsx` floating control bar at bottom-left of the canvas. Grouped smooth-animated zoom buttons and Liveblocks undo/redo buttons with visual disable states (`opacity-30 pointer-events-none`).
-  - Integrated `CanvasControls` inside `CanvasEditor`.
-- **2026-07-24 — Navbar/AI-sidebar deduplication fix (`20-navbar-dedup`)**
-  - Diagnosed duplicate `EditorNavbar` + `ShareDialog` rendering: `EditorLayout` rendered a navbar around `{children}`, and `WorkspaceShell` (rendered as those children) rendered its own second navbar and a second, dead (unreachable) `ShareDialog`.
-  - Removed the unused `shareOpen` state and dead `ShareDialog` instance from `WorkspaceShell`.
-  - Introduced `components/editor/ai-sidebar-context.tsx` (`AiSidebarProvider`/`useAiSidebar`) so `aiOpen` state can be shared between `EditorLayout` (owns `EditorNavbar`, the toggle trigger) and `WorkspaceShell`/`CanvasEditor` (need `aiOpen` for the `CanvasRoom`/presence UI), which sit on opposite sides of the `children` boundary.
-  - `EditorLayout` is now the sole renderer of `EditorNavbar` and `AiSidebar`; `WorkspaceShell` was reduced to just rendering `CanvasRoom` and reading `aiOpen` from context.
-  - Fixed floating `AiSidebar` panel's top offset from `top-16` (64px, mismatched against the `h-14`/56px navbar) to `top-[4.5rem]` (navbar height + `1rem`), matching the `1rem` inset used on `right-4`/`bottom-4` so all three margins are visually even.
-- **2026-07-24 — Canvas autosave (`21-canvas-autosave`)**
-  - Reviewed `prisma/model/project.prisma` — existing `canvasJsonPath` field reused directly for the Blob URL; no migration required.
-  - Installed `@vercel/blob`.
-  - Built `PUT`/`GET /api/projects/[projectId]/canvas` in `app/api/projects/[projectId]/canvas/route.ts`. `PUT` uploads `{ nodes, edges }` JSON via `put()` to a stable path (`canvas/{projectId}.json`, `allowOverwrite: true`) and writes the returned URL to `Project.canvasJsonPath`. `GET` reads the URL from Prisma and fetches/returns the JSON from Blob, defaulting to `{ nodes: [], edges: [] }` if nothing saved yet. Both routes gate access via `getAccessibleProject` (owner or collaborator) rather than owner-only.
-  - Created `contexts/save-status-context.tsx` (`SaveStatusProvider`/`useSaveStatus`) to carry save status (`idle` | `saving` | `saved` | `error`) across the `EditorLayout`/`{children}` boundary, mirroring the `AiSidebarContext` pattern from `20-navbar-dedup`.
-  - Created `hooks/use-canvas-autosave.ts` — debounces 1500ms off `nodes`/`edges` reference changes, aborts in-flight requests via `AbortController` on rapid edits, skips the first render after being enabled (avoids re-saving a just-loaded canvas), writes status into `SaveStatusContext`.
-  - Updated `CanvasRoom` to pass its `roomId` down to `CanvasEditor` as a new `projectId` prop.
-  - Updated `CanvasEditor`: added mount-only load effect — checks Liveblocks room storage for existing nodes/edges first; if empty, fetches the saved canvas via the new `GET` route and hydrates via `setNodes`/`setEdges`; if the room already has content, skips the fetch entirely. Wired `useCanvasAutosave` with `enabled` gated on load completion.
-  - Updated `EditorNavbar` with a `saveStatus` prop and a small non-interactive status indicator (`Loader2` spinning / `Check` / `AlertTriangle`), hidden entirely on `idle` so it stays invisible until the first autosave fires.
-  - Updated `EditorLayout` to wrap `EditorLayoutInner` in `SaveStatusProvider` (nested alongside `AiSidebarProvider`) and pass `saveStatus` from `useSaveStatus()` into `EditorNavbar`.
-  - **Unverified assumption:** `getAccessibleProject`'s exact signature was inferred from its usage in `WorkspacePage` (`getAccessibleProject(roomId)`, no separate `userId` arg) — the real `lib/project-access.ts` source wasn't available when this was written. Confirm signature matches before relying on the canvas routes' access checks.
-  - **2026-07-29 — AI Design Agent Implementation (`22-ai-design-agent`)**
-  - Updated Trigger.dev task file `trigger/design-agent.ts`.
-  - Integrated Gemini model (`gemini-1.5-pro`) to handle structural architectural canvas inputs via structured `zod` schemas.
-  - Interfaced with Liveblocks Node SDK to fire room `broadcastEvent` allowing simulated AI cursor movement/thinking state + live task status feedback directly aligned with original implementation guidelines.
+- **2025-07-16 — Shape panel (`12-shape-panel`)** — drag payload, drop handler, basic node renderer, shape toolbar.
+- **2026-07-19 — Shape rendering (`13-shape-rendering`)** — CSS + scalable SVG shape rendering, native drag preview ghosts.
+- **2026-07-20 — Node editing (`14-node-editing`)** — `<NodeResizer>`, inline label editing, connect/delete wired to Liveblocks storage, explicit handle IDs.
+- **2026-07-20 — Node color toolbar (`15-color-toolbar`)** — floating swatch toolbar, live color/textColor updates via `updateNodeData`.
+- **2026-07-20 — Edge behavior (`16-edge-behavior`)** — `useLiveblocksFlow` hook, custom right-angle edges, inline edge label editing.
+- **2026-07-20 — Canvas controls (`17-canvas-controls`)** — zoom/undo/redo control bar, keyboard shortcuts hook.
+- **2026-07-24 — Navbar/AI-sidebar dedup (`20-navbar-dedup`)** — fixed duplicate navbar/sidebar mounting via `AiSidebarProvider`; fixed floating panel top-offset math.
+- **2026-07-24 — Canvas autosave (`21-canvas-autosave`)** — Blob-backed save/load routes, debounced autosave hook, save-status context; debugged the indicator not appearing (`hidden md:flex` breakpoint issue, not a wiring bug) and a production 500 (`access: "public"` against a private-configured Blob store).
+- **2026-07-27 — Design agent backend wiring (`22-design-agent-api`)** — `trigger.config.ts`, `TaskRun` model, trigger/token routes, placeholder task.
+- **2026-07-29 — Design agent full logic (`23-design-agent-logic`)**
+  - Rewrote `trigger/design-agent.ts` as a `schemaTask` with `generateObject`, constrained to real shape/color types from `types/canvas.ts`.
+  - Fixed a draft's three correctness issues before finalizing: `task()` → `schemaTask()`; wrong env var (`google` bare import vs. `createGoogleGenerativeAI({apiKey: GOOGLE_AI_API_KEY})`); and a data-loss bug where the draft only ever broadcast an ephemeral event for a client to apply, rather than writing durably to Storage — replaced with `liveblocks.mutateStorage`.
+  - **Debugged three sequential runtime errors during testing:**
+    1. `TaskPayloadParsedError` — the person was testing the task directly from the Trigger.dev dashboard with a hand-typed payload missing required fields; not a code bug, just a reminder that manual dashboard tests need the full schema.
+    2. `AI_NoObjectGeneratedError` (first occurrence) — root-caused to the response schema being a bare top-level `z.array(...)` rather than an object; Gemini's structured-output mode expects an object root. Fixed by wrapping in `{ actions: [...] }`.
+    3. `AI_APICallError: gemini-2.5-flash ... no longer available to new users` — the Google AI project here is newly created; reverted the model back to `gemini-3.5-flash` (confirmed as a real, current GA model) while keeping the object-wrapping fix.
+    4. `AI_NoObjectGeneratedError` (recurred, after both prior fixes) — root-caused to `z.discriminatedUnion` itself at the schema root; Gemini/Vertex have documented poor support for `anyOf`-style unions in structured output. Fixed by flattening the 7-variant discriminated union into one object with a `type` enum and all type-specific fields marked optional, validated manually at apply-time in `applyActions` instead of by the schema. Also added `thinkingConfig: { thinkingLevel: "low" }` to reduce Gemini 3.x's default reasoning-token interference with JSON parsing.
+  - Caught and fixed two bugs introduced during the person's manual merge of the flattening diff: a double-ternary syntax error in the `RESIZE_NODE` case (two `?` with only one `:`, wouldn't compile) and a dead-code line in `MOVE_NODE` (old and new ternary both left in as comma-separated arguments to `.map()`, so only the first ran).
+- **2026-08-02 — AI presence & shared status feed (`24-ai-presence-spec`)**
+  - Identified that `23`'s `AI_STATUS` via `liveblocks.broadcastEvent` was exactly the "parallel realtime state" this spec's Liveblocks best-practices instruction warns against — Liveblocks has a dedicated **Feeds** primitive for this use case (confirmed via Liveblocks' own docs/blog: "Feeds gives you a structured place to store... agent logs... tied to the room where the work is happening").
+  - Migrated status publishing onto Feeds: new `types/tasks.ts` (shared, client-safe schema + `AI_STATUS_FEED_ID` constant), new `lib/ai-status-feed.ts` (server-only, `@liveblocks/node`-dependent — deliberately kept separate from `types/tasks.ts` so a client hook importing the schema never accidentally bundles server-only Liveblocks code), new `hooks/use-ai-status-feed.ts` (client, `useFeedMessages` + Zod validation before use).
+  - Updated `design-agent.ts`'s `publishStatus` to call `publishAiStatus` instead of `broadcastEvent`; reverted `liveblocks.config.ts`'s `RoomEvent` typing back to `{}` since the custom event type is no longer used; repointed `ai-status-banner.tsx` at the new feed hook instead of the old broadcast listener.
+  - Updated `AiSidebar`: chat textarea and starter chips disabled while `isGenerating`, send button shows a spinner and disables, a small status line shows the feed's latest `text` — header/tabs/close button explicitly left interactive per scope limits ("don't block or dim the whole sidebar").
+  - **Item 4 (live-cursor `isThinking` spinner badges) left unimplemented** — `components/editor/canvas/live-cursor.tsx` has never been shared in this thread; rather than guess at unseen component internals, flagged as blocked pending that file.
+  - Noted the spec's prose says presence field `thinking`, but the actual `liveblocks.config.ts` Presence type (and all existing code using it) says `isThinking` — treated as the same field, informally described, not a request for a second field.

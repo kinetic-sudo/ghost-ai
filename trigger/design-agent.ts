@@ -3,7 +3,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateObject, NoObjectGeneratedError } from "ai";
 import type { GoogleGenerativeAIProviderOptions } from "@ai-sdk/google";
 import { z } from "zod";
-
+import { publishAiStatus } from "@/lib/ai-status-feed";
 import { getLiveblocks } from "@/lib/liveblocks";
 import {
   NODE_SHAPES,
@@ -266,11 +266,14 @@ export const designAgentTask = schemaTask({
     const liveblocks = getLiveblocks();
     const google = createGoogleGenerativeAI({ apiKey: process.env.GOOGLE_AI_API_KEY });
 
-    async function publishStatus(status: string, message: string) {
-      metadata.set("status", status);
-      metadata.set("message", message);
-      await liveblocks.broadcastEvent(roomId, { type: "AI_STATUS", status, message } as any);
-    }
+        async function publishStatus(
+              status: "start" | "processing" | "applying" | "complete" | "error",
+              text: string,
+            ) {
+              metadata.set("status", status);
+              metadata.set("message", text);
+              await publishAiStatus(roomId, { kind: "design", status, text });
+            }
 
     try {
       await liveblocks.setPresence(roomId, {

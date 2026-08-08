@@ -6,13 +6,15 @@ import {
   X, 
   Send, 
   FileText, 
-  Download 
+  Download,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useAiStatusFeed } from "@/hooks/use-ai-status-feed";
 
 interface Message {
   id: string;
@@ -35,6 +37,7 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { message: aiStatus, isGenerating } = useAiStatusFeed();
 
   // Auto-resize textarea
   useEffect(() => {
@@ -47,7 +50,7 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
 
   const handleSend = (textToSend?: string) => {
     const content = textToSend || input;
-    if (!content.trim()) return;
+    if (!content.trim() || isGenerating) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -203,7 +206,8 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
           <div className="flex flex-col gap-4">
             <Button 
               onClick={() => {}}
-              className="w-full rounded-full bg-[#6E56CF] font-medium text-white shadow-lg transition-all hover:bg-[#5b48bd]"
+              disabled={isGenerating}
+              className="w-full rounded-full border border-white/5 bg-[#1A182D] py-3 px-4 text-center text-xs font-medium text-[#B8A6FC] shadow-sm transition-colors hover:bg-[#23203B] disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Generate Spec
             </Button>
