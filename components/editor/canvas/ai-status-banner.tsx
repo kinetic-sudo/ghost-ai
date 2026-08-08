@@ -2,15 +2,15 @@
 
 import { Loader2, Check, AlertTriangle } from "lucide-react";
 
-import { useAiStatus } from "@/hooks/use-ai-status";
+import { useAiStatusFeed } from "@/hooks/use-ai-status-feed";
 import { cn } from "@/lib/utils";
 
 export function AiStatusBanner() {
-  const status = useAiStatus();
-  if (!status) return null;
+      const { message } = useAiStatusFeed();
+      if (!message) return null;
 
-  const isDone = status.status === "complete";
-  const isError = status.status === "error";
+  const isDone = message.status === "complete";
+  const isError = message.status === "error";
 
   return (
     <div
