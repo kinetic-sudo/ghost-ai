@@ -29,3 +29,22 @@ export type AiStatusFeedMessage = z.infer<typeof aiStatusFeedMessageSchema>;
 export function isAiStatusActive(status: AiStatusFeedMessage["status"]): boolean {
   return status === "start" || status === "processing" || status === "applying";
 }
+
+// ---------------------------------------------------------------------------
+// Shared room chat — a separate feed from ai-status-feed. Chat is
+// user-authored; AI replies are explicitly out of scope for this unit, but
+// "role" is widened to include "assistant" now so a future unit can add
+// them to this same feed without a schema change.
+// ---------------------------------------------------------------------------
+
+ export const AI_CHAT_FEED_ID = "ai-chat";
+ export const chatMessageSchema = z.object({
+  senderId: z.string(),
+  senderName: z.string(),
+  senderAvatar: z.string().optional(),
+  role: z.enum(["user", "assistant"]),
+  content: z.string().min(1),
+  timestamp: z.number(),
+});
+
+export type ChatMessage = z.infer<typeof chatMessageSchema>;
