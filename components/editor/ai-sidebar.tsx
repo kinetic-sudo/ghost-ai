@@ -15,12 +15,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useAiStatusFeed } from "@/hooks/use-ai-status-feed";
+import { useAiChatFeed } from "@/hooks/use-ai-chat-feed";
 
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-}
+
 
 interface AiSidebarProps {
   open: boolean;
@@ -34,8 +31,7 @@ const STARTER_CHIPS = [
 ];
 
 export function AiSidebar({ open, onClose }: AiSidebarProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
+    const { messages, sendMessage, sendError, currentUserId } = useAiChatFeed();  const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { message: aiStatus, isGenerating } = useAiStatusFeed();
 
@@ -52,27 +48,14 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
     const content = textToSend || input;
     if (!content.trim() || isGenerating) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: content.trim(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
+  
+    sendMessage(content);
     setInput("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "72px";
     }
 
-    setTimeout(() => {
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: `I've analyzed your request for "${content.trim()}". Here is a structural breakdown and recommended architecture pattern tailored for your canvas workspace.`,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-    }, 600);
-  };
+;
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -156,17 +139,23 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
               <div className="flex flex-col gap-3 py-2">
                 {messages.map((msg) => (
                   <div
-                    key={msg.id}
+                  key={`${msg.senderId}-${msg.timestamp}`}
                     className={cn(
                       "flex max-w-[88%] flex-col rounded-2xl px-4 py-3 text-xs leading-relaxed shadow-sm",
-                      msg.role === "user"
+                      msg.senderId === currentUserId
                         ? "ml-auto bg-[#6E56CF] text-white"
                         : "mr-auto border border-white/5 bg-[#1A182D] text-white/90"
                     )}
                   >
-                    <span className="mb-1 text-[10px] font-semibold opacity-70">
-                      {msg.role === "user" ? "You" : "Ghost AI"}
-                    </span>
+                      <span className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold opacity-70">
+                     {msg.senderId === currentUserId ? "You" : msg.senderName}
+                     <span className="font-normal opacity-60">
+                       {new Date(msg.timestamp).toLocaleTimeString([], {
+                         hour: "2-digit",
+                         minute: "2-digit",                        
+                         })}
+                     </span>
+                     </span>
                     {msg.content}
                   </div>
                 ))}
@@ -266,4 +255,5 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
       </Tabs>
     </aside>
   );
+}
 }
