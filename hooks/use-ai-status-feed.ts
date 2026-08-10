@@ -14,9 +14,11 @@ export function useAiStatusFeed(): {
   isGenerating: boolean;
 } {
   const { messages } = useFeedMessages(AI_STATUS_FEED_ID);
-  const latest = messages[messages.length - 1];
 
-  if (!latest) return { message: null, isGenerating: false };
+    // Liveblocks Feeds returns messages newest-first, not chronological —
+    // index 0 is the latest, not the last element.
+    const latest = messages[0];
+
 
   // Validate before displaying — a malformed/foreign message on this feed
   // should never crash the sidebar or render garbage.
