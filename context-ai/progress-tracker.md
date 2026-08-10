@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- Shared AI activity (thinking state, status feed, cursor badges) and now real collaborative sidebar chat are both visible to every room participant. Next: finish live-cursor thinking badges (blocked on seeing `live-cursor.tsx`), then wire the "Generate" action to actually call `POST /api/ai/design`.
+- Shared AI activity (thinking state, status feed, cursor badges) and real collaborative sidebar chat are both visible to every room participant. Now wiring `26-ai-chat-functional`: sidebar submit → `POST /api/ai/design` → `useRealtimeRun` status tracking, relying on existing Liveblocks primitives for canvas/chat/status. Blocked on source files (see In Progress).
 
 ## Completed
 
@@ -41,18 +41,19 @@ Update this file whenever the current phase, active feature, or implementation s
 ## In Progress
 
 - `24-ai-presence-spec` item 4 — live cursor `isThinking` spinner badges. Waiting on `live-cursor.tsx` source before writing the diff.
+- `26-ai-chat-functional` — wire sidebar submit to `POST /api/ai/design`, track run status via `useRealtimeRun`, disable input + show status strip while a run is active. **Blocked**: no source files shared yet. Need `ai-sidebar.tsx`, `hooks/use-ai-chat-feed.ts`, `hooks/use-ai-status-feed.ts`, `app/api/ai/design/route.ts`, `app/api/ai/design/token/route.ts`, `types/tasks.ts`, and confirmation `@trigger.dev/react-hooks` is installed.
 
 ## Next Up
 
 - Finish `24`'s live-cursor badges once `live-cursor.tsx` is provided.
-- Wire the sidebar's "Generate" action to actually call `POST /api/ai/design` → `POST /api/ai/design/token` — chat (`25`) and status/presence (`24`) are both real now, and the backend is fully functional (`23`), but nothing in the UI actually triggers a design generation run yet; sending a chat message only posts to `ai-chat`, it doesn't call the design endpoint.
+- Finish `26` once the blocked files above are shared.
 - Verify the `useErrorListener`/`error.context.type === "CREATE_FEED_MESSAGE_ERROR"` assumption in `use-ai-chat-feed.ts` against real behavior (e.g. force a failed send) — the Liveblocks Feeds hooks reference page cut off before confirming this specific error-context shape.
 - Add a real asset at `/ghost-ai-avatar.png` — still a placeholder path with no image behind it.
 - Fix the "New Project" dialog's misleading URL preview (`/editor/<slug>`) vs. the real post-creation URL (`/editor/<cuid>`) — flagged mid-thread, not yet resolved; needs the dialog component to fix properly.
 
 ## Open Questions
 
-- None.
+- `26-ai-chat-functional`'s spec says `POST /api/ai/design` should return `{ runId, publicToken }` directly, but per `22-design-agent-api` that route only ever returned `runId` — `publicToken` comes from a separate `POST /api/ai/design/token` call. Spec also says "do not implement backend or Trigger.dev logic," which rules out changing the route to mint the token inline. Assumed resolution: chain both existing calls client-side from the sidebar's submit handler (`design` → `runId` → `token` → `publicToken`), not a backend change. Flagged for confirmation once implementation starts.
 
 ## Architecture Decisions
 
