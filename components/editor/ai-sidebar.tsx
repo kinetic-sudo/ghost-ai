@@ -171,6 +171,11 @@ export function AiSidebar({ open, onClose }: AiSidebarProps) {
                 {aiStatus?.text ?? "Ghost AI is working…"}
               </div>
             )}
+            {sendError && (
+              <div className="mb-2 px-1 text-[11px] font-medium text-[#FF6166]">
+                {sendError}
+              </div>
+            )}
             <div className="relative flex flex-col rounded-2xl border border-white/10 bg-[#151422] p-3 shadow-inner">
               <Textarea
                 ref={textareaRef}
