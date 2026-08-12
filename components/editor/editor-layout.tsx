@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { ProjectDialogs } from "@/components/editor/project-dialogs";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
-import { AiSidebar } from "@/components/editor/ai-sidebar";
 import { AiSidebarProvider, useAiSidebar } from "@/components/editor/ai-sidebar-context";
 import { SaveStatusProvider, useSaveStatus } from "@/context/save-status-context";
 import type { Project } from "@/types/project";
@@ -27,7 +26,7 @@ function EditorLayoutInner({
   activeProjectId,
 }: EditorLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const { aiOpen, toggleAi, closeAi } = useAiSidebar();
+  const { aiOpen, toggleAi } = useAiSidebar();
   const { status: saveStatus } = useSaveStatus();
 
   const pathname = usePathname();
@@ -70,8 +69,12 @@ function EditorLayoutInner({
           activeProjectId={currentProjectId}
         />
 
-        {/* Single AI Sidebar instance, controlled by the navbar above */}
-        <AiSidebar open={aiOpen} onClose={closeAi} />
+        {/* AiSidebar now renders from inside CanvasEditor (see canvas-editor.tsx),
+            not here — it needs to live inside the room's LiveblocksProvider/
+            RoomProvider tree, which only exists per-room inside {children}.
+            Rendering it here as a sibling of {children} meant it was outside
+            that provider entirely, including on room-less routes like
+            /editor, which crashed with "LiveblocksProvider is missing". */}
       </main>
 
       <ProjectDialogs />
