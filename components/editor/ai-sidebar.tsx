@@ -24,8 +24,6 @@ interface AiSidebarProps {
   /**
    * Prisma project id, which doubles as the Liveblocks roomId
    * (see progress-tracker.md: "the two are identical by design").
-   * NOTE: not yet threaded in from EditorLayout — needs that file to wire
-   * the call site. AiSidebar now requires it as a prop.
    */
   roomId: string;
 }
@@ -87,10 +85,9 @@ export function AiSidebar({ open, onClose, roomId }: AiSidebarProps) {
     if (run.status === "COMPLETED") {
       finalizedRunRef.current = runId;
       // NOTE: pushed via the same sendMessage() the user's own messages use,
-      // since use-ai-chat-feed.ts wasn't available to confirm whether it
-      // supports authoring a message as "ghost-ai" instead of the current
-      // user. Until that's confirmed this will render as a message from you,
-      // not a visually distinct AI bubble.
+      // since use-ai-chat-feed.ts has no way (yet) to author a message as
+      // "ghost-ai" instead of the current user. Until that's added this will
+      // render as a message from you, not a visually distinct AI bubble.
       sendMessage("Design updated — check the canvas for the latest changes.");
       setRunId(null);
       setPublicToken(null);
@@ -126,7 +123,7 @@ export function AiSidebar({ open, onClose, roomId }: AiSidebarProps) {
     setRunError(null);
     setIsSubmitting(true);
     try {
-      const designRes = await fetch("/api/ai/design", {
+      const designRes = await fetch("/api/design", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: content, roomId, projectId: roomId }),
@@ -137,7 +134,7 @@ export function AiSidebar({ open, onClose, roomId }: AiSidebarProps) {
       }
       const { runId: newRunId } = (await designRes.json()) as { runId: string };
 
-      const tokenRes = await fetch("/api/ai/design/token", {
+      const tokenRes = await fetch("/api/design/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ runId: newRunId }),

@@ -19,6 +19,9 @@ export function useAiStatusFeed(): {
     // index 0 is the latest, not the last element.
     const latest = messages[0];
 
+    // No status has ever been posted to this room yet (brand new room, or
+    // no design run has run since it was created) — nothing to show.
+    if (!latest) return { message: null, isGenerating: false };
 
   // Validate before displaying — a malformed/foreign message on this feed
   // should never crash the sidebar or render garbage.

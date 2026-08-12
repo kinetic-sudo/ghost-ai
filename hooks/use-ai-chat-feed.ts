@@ -20,14 +20,15 @@ export function useAiChatFeed() {
   const feedEnsured = useRef(false);
 
   // Best-effort create-once per session — safe to ignore if it already exists.
+  // createFeed rejects asynchronously (not a sync throw), so this must be
+  // caught with .catch() — a try/catch here would never see the rejection
+  // and it would surface as an unhandled promise rejection instead.
   useEffect(() => {
     if (feedEnsured.current) return;
     feedEnsured.current = true;
-    try {
-      createFeed(AI_CHAT_FEED_ID, { metadata: { kind: "chat" } });
-    } catch {
+    Promise.resolve(createFeed(AI_CHAT_FEED_ID, { metadata: { kind: "chat" } })).catch(() => {
       // Already exists — fine.
-    }
+    });
   }, [createFeed]);
 
   useErrorListener((error) => {
