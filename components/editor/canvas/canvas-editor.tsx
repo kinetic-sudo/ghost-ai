@@ -22,6 +22,8 @@ import { StarterTemplatesModal } from "@/components/editor/starter-template-moda
 import { type CanvasTemplate } from "@/components/editor/starter-template";
 import { useLiveblocksFlow } from "@/hooks/use-liveblocks-flow";
 import { AiStatusBanner } from "./ai-status-banner";
+import { AiSidebar } from "@/components/editor/ai-sidebar";
+import { useAiSidebar } from "@/components/editor/ai-sidebar-context";
 import { DRAG_TYPE, type ShapeDragPayload } from "@/types/canvas";
 
 const NODE_TYPES = {
@@ -65,6 +67,7 @@ export function CanvasEditor({ projectId, aiOpen }: CanvasEditorProps) {
 
   const { screenToFlowPosition, fitView } = useReactFlow();
   const [, updateMyPresence] = useMyPresence();
+  const { closeAi } = useAiSidebar();
 
   useEffect(() => {
      let cancelled = false;
@@ -224,6 +227,11 @@ export function CanvasEditor({ projectId, aiOpen }: CanvasEditorProps) {
         <CollaboratorAvatar aiOpen={aiOpen} />
         <AiStatusBanner />
         <ShapePanel />
+
+        {/* Mounted here (not in EditorLayout) because this is the only place
+            inside the LiveblocksProvider/RoomProvider tree — AiSidebar's
+            chat feed hooks need that context, and roomId is already on hand. */}
+        <AiSidebar open={!!aiOpen} onClose={closeAi} roomId={projectId} />
       </div>
 
       <StarterTemplatesModal
