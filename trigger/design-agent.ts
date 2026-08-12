@@ -17,7 +17,6 @@ import {
 // Payload — loosely-typed nodes/edges, mirroring generate-spec.ts's pattern
 // ---------------------------------------------------------------------------
 
-
 const nodeSchema = z.object({ id: z.string() }).passthrough();
 const edgeSchema = z.object({ id: z.string() }).passthrough();
 
@@ -42,41 +41,82 @@ const paletteIndexSchema = z
   .max(NODE_COLORS.length - 1)
   .describe("Index into the fixed color palette. Never invent a hex code.");
 
-  const canvasActionSchema = z.object({
-      type: z
-        .enum([
-          "ADD_NODE",
-          "MOVE_NODE",
-          "RESIZE_NODE",
-          "UPDATE_NODE",
-          "DELETE_NODE",
-          "ADD_EDGE",
-          "DELETE_EDGE",
-        ])
-        .describe("Which canvas action this entry performs."),
-      id: z
-        .string()
-        .describe(
-          "For ADD_NODE/ADD_EDGE: a new short kebab-case id. For all other types: the exact existing node/edge id to target.",
-        ),
-      shape: shapeEnum.optional().describe("Required for ADD_NODE only."),
-      colorIndex: paletteIndexSchema.optional().describe("Used by ADD_NODE (required) and UPDATE_NODE (optional)."),
-      label: z.string().optional().describe("Used by ADD_NODE (required), UPDATE_NODE (optional), and ADD_EDGE (optional)."),
-      x: z.number().optional().describe("Required for ADD_NODE and MOVE_NODE."),
-      y: z.number().optional().describe("Required for ADD_NODE and MOVE_NODE."),
-      width: z.number().optional().describe("Required for RESIZE_NODE."),
-      height: z.number().optional().describe("Required for RESIZE_NODE."),
-      source: z.string().optional().describe("Required for ADD_EDGE — the source node id."),
-      target: z.string().optional().describe("Required for ADD_EDGE — the target node id."),
-      sourceHandle: handleEnum.optional().describe("Required for ADD_EDGE."),
-      targetHandle: handleEnum.optional().describe("Required for ADD_EDGE."),
-    });
+// Discriminated union on `type` — each variant only exposes the fields that
+// actually apply to it, and marks them required (not `.optional()`).
+//
+// This replaces a single flat object where every field was optional and the
+// "required for X" rules lived only in prompt text. With that shape, Gemini
+// (especially at thinkingLevel: "low") would reliably emit just `type` + `id`
+// and omit everything else, since the schema itself never demanded more —
+// applyActions() then had to skip every single action as malformed. Making
+// the requirement structural, not just descriptive, is the actual fix.
+
+const addNodeActionSchema = z.object({
+  type: z.literal("ADD_NODE"),
+  id: z.string().describe("A new short kebab-case id for this node."),
+  shape: shapeEnum,
+  colorIndex: paletteIndexSchema,
+  label: z.string(),
+  x: z.number(),
+  y: z.number(),
+});
+
+const moveNodeActionSchema = z.object({
+  type: z.literal("MOVE_NODE"),
+  id: z.string().describe("The exact existing node id to move."),
+  x: z.number(),
+  y: z.number(),
+});
+
+const resizeNodeActionSchema = z.object({
+  type: z.literal("RESIZE_NODE"),
+  id: z.string().describe("The exact existing node id to resize."),
+  width: z.number(),
+  height: z.number(),
+});
+
+const updateNodeActionSchema = z.object({
+  type: z.literal("UPDATE_NODE"),
+  id: z.string().describe("The exact existing node id to update."),
+  label: z.string().optional().describe("New label. Omit to leave unchanged."),
+  colorIndex: paletteIndexSchema.optional().describe("New color. Omit to leave unchanged."),
+});
+
+const deleteNodeActionSchema = z.object({
+  type: z.literal("DELETE_NODE"),
+  id: z.string().describe("The exact existing node id to delete."),
+});
+
+const addEdgeActionSchema = z.object({
+  type: z.literal("ADD_EDGE"),
+  id: z.string().describe("A new short kebab-case id for this edge."),
+  source: z.string().describe("The source node id."),
+  target: z.string().describe("The target node id."),
+  sourceHandle: handleEnum,
+  targetHandle: handleEnum,
+  label: z.string().optional(),
+});
+
+const deleteEdgeActionSchema = z.object({
+  type: z.literal("DELETE_EDGE"),
+  id: z.string().describe("The exact existing edge id to delete."),
+});
+
+const canvasActionSchema = z.discriminatedUnion("type", [
+  addNodeActionSchema,
+  moveNodeActionSchema,
+  resizeNodeActionSchema,
+  updateNodeActionSchema,
+  deleteNodeActionSchema,
+  addEdgeActionSchema,
+  deleteEdgeActionSchema,
+]);
 
 const canvasResponseSchema = z.object({
-    actions: z.array(canvasActionSchema),
-    });
-    
-    type CanvasAction = z.infer<typeof canvasActionSchema>;
+  actions: z.array(canvasActionSchema),
+});
+
+type CanvasAction = z.infer<typeof canvasActionSchema>;
 
 // ---------------------------------------------------------------------------
 // AI agent identity — must satisfy the UserMeta shape in liveblocks.config.ts
@@ -132,14 +172,15 @@ Rules:
 - Reuse the exact existing node ids shown in context for MOVE_NODE, RESIZE_NODE, UPDATE_NODE, DELETE_NODE, and as edge endpoints — never invent an id for something that isn't either already on the canvas or being created in this same batch via ADD_NODE.
 - Do not duplicate a node that already represents the same concept — extend or connect to the existing one instead.
 - For edges, prefer outgoing connections from the "right" handle and incoming connections to the "left" handle, unless the layout clearly calls for a different side.
-- Each action object has a "type" field plus every possible field, but only some fields apply per type — omit or ignore the rest:
-- ADD_NODE: id (new), shape, colorIndex, label, x, y
-- MOVE_NODE: id (existing), x, y
-- RESIZE_NODE: id (existing), width, height
-- UPDATE_NODE: id (existing), label and/or colorIndex
+- Each action's fields depend on its type:
+- ADD_NODE: id (new), shape, colorIndex, label, x, y — all required
+- MOVE_NODE: id (existing), x, y — all required
+- RESIZE_NODE: id (existing), width, height — all required
+- UPDATE_NODE: id (existing), and at least one of label or colorIndex
 - DELETE_NODE: id (existing)
-- ADD_EDGE: id (new), source, target, sourceHandle, targetHandle, label (optional)
+- ADD_EDGE: id (new), source, target, sourceHandle, targetHandle — all required; label optional
 - DELETE_EDGE: id (existing edge id)`;
+
 // ---------------------------------------------------------------------------
 // Apply actions against a plain-array snapshot of nodes/edges
 // ---------------------------------------------------------------------------
@@ -148,23 +189,15 @@ function applyActions(
   currentNodes: CanvasNode[],
   currentEdges: CanvasEdge[],
   actions: CanvasAction[],
-): { nodes: CanvasNode[]; edges: CanvasEdge[] } {
+): { nodes: CanvasNode[]; edges: CanvasEdge[]; appliedCount: number; skippedCount: number } {
   let nodes = [...currentNodes];
   let edges = [...currentEdges];
+  let appliedCount = 0;
+  let skippedCount = 0;
 
   for (const action of actions) {
     switch (action.type) {
       case "ADD_NODE": {
-               if (
-                     action.shape === undefined ||
-                     action.colorIndex === undefined ||
-                     action.label === undefined ||
-                     action.x === undefined ||
-                     action.y === undefined
-                   ) {
-                     logger.warn("design-agent: skipping malformed ADD_NODE", { action });
-                     break;
-                   } 
         const palette = NODE_COLORS[action.colorIndex];
         const { width, height } = SHAPE_DEFAULTS[action.shape];
         nodes.push({
@@ -179,34 +212,29 @@ function applyActions(
           },
           style: { width, height },
         } as CanvasNode);
+        appliedCount++;
         break;
       }
-            case "MOVE_NODE": {
-                if (action.x === undefined || action.y === undefined) {
-                  logger.warn("design-agent: skipping malformed MOVE_NODE", { action });
-                  break;
-                }
-                const { x, y } = action;
-                nodes = nodes.map((n) =>
-                    n.id === action.id ? { ...n, position: { x, y } } : n,
-                  );
-                 break;
-        
+      case "MOVE_NODE": {
+        const { x, y } = action;
+        nodes = nodes.map((n) => (n.id === action.id ? { ...n, position: { x, y } } : n));
+        appliedCount++;
+        break;
       }
       case "RESIZE_NODE": {
-                if (action.width === undefined || action.height === undefined) {
-                  logger.warn("design-agent: skipping malformed RESIZE_NODE", { action });
-                  break;
-                }
-                const { width, height } = action;
-                nodes = nodes.map((n) =>
-                    n.id === action.id
-                     ? { ...n, style: { ...n.style, width, height } }
-                    : n,
-                  );
-                 break;
-              }
+        const { width, height } = action;
+        nodes = nodes.map((n) =>
+          n.id === action.id ? { ...n, style: { ...n.style, width, height } } : n,
+        );
+        appliedCount++;
+        break;
+      }
       case "UPDATE_NODE": {
+        if (action.label === undefined && action.colorIndex === undefined) {
+          logger.warn("design-agent: skipping no-op UPDATE_NODE (no label or colorIndex)", { action });
+          skippedCount++;
+          break;
+        }
         const palette = action.colorIndex !== undefined ? NODE_COLORS[action.colorIndex] : undefined;
         nodes = nodes.map((n) =>
           n.id === action.id
@@ -220,18 +248,21 @@ function applyActions(
               }
             : n,
         );
+        appliedCount++;
         break;
       }
-      case "DELETE_NODE":
+      case "DELETE_NODE": {
         nodes = nodes.filter((n) => n.id !== action.id);
         edges = edges.filter((e) => e.source !== action.id && e.target !== action.id);
+        appliedCount++;
         break;
-        case "ADD_EDGE": {
-                    if (!action.source || !action.target || !action.sourceHandle || !action.targetHandle) {
-                      logger.warn("design-agent: skipping malformed ADD_EDGE", { action });
-                      break;
-                    }
-        if (edges.some((e) => e.id === action.id)) break;
+      }
+      case "ADD_EDGE": {
+        if (edges.some((e) => e.id === action.id)) {
+          logger.warn("design-agent: skipping duplicate ADD_EDGE id", { action });
+          skippedCount++;
+          break;
+        }
         edges.push({
           id: action.id,
           source: action.source,
@@ -242,15 +273,18 @@ function applyActions(
           markerEnd: EDGE_MARKER_END,
           data: action.label ? { label: action.label } : {},
         } as CanvasEdge);
+        appliedCount++;
         break;
-    }
-      case "DELETE_EDGE":
+      }
+      case "DELETE_EDGE": {
         edges = edges.filter((e) => e.id !== action.id);
+        appliedCount++;
         break;
+      }
     }
   }
 
-  return { nodes, edges };
+  return { nodes, edges, appliedCount, skippedCount };
 }
 
 // ---------------------------------------------------------------------------
@@ -266,14 +300,14 @@ export const designAgentTask = schemaTask({
     const liveblocks = getLiveblocks();
     const google = createGoogleGenerativeAI({ apiKey: process.env.GOOGLE_AI_API_KEY });
 
-        async function publishStatus(
-              status: "start" | "processing" | "applying" | "complete" | "error",
-              text: string,
-            ) {
-              metadata.set("status", status);
-              metadata.set("message", text);
-              await publishAiStatus(roomId, { kind: "design", status, text });
-            }
+    async function publishStatus(
+      status: "start" | "processing" | "applying" | "complete" | "error",
+      text: string,
+    ) {
+      metadata.set("status", status);
+      metadata.set("message", text);
+      await publishAiStatus(roomId, { kind: "design", status, text });
+    }
 
     try {
       await liveblocks.setPresence(roomId, {
@@ -288,18 +322,18 @@ export const designAgentTask = schemaTask({
 
       await publishStatus("processing", "Drafting the architecture…");
 
-       const { object } = await generateObject({
+      const { object } = await generateObject({
         model: google("gemini-3.5-flash"),
         system: SYSTEM_PROMPT,
         prompt: `${buildContext(nodes as CanvasNode[], edges as CanvasEdge[])}\n\n## User Request\n${prompt}`,
         schema: canvasResponseSchema,
         providerOptions: {
-                     google: {
-                       thinkingConfig: { thinkingLevel: "low" },
-                     } satisfies GoogleGenerativeAIProviderOptions,
-                   },
-    });
-       const actions = object.actions;
+          google: {
+            thinkingConfig: { thinkingLevel: "low" },
+          } satisfies GoogleGenerativeAIProviderOptions,
+        },
+      });
+      const actions = object.actions;
 
       await publishStatus(
         "applying",
@@ -309,17 +343,34 @@ export const designAgentTask = schemaTask({
       // Re-read LIVE state inside the mutation rather than trusting the
       // context snapshot passed in via payload — collaborators may have
       // edited the canvas in the seconds since this task was triggered.
+      let appliedCount = 0;
+      let skippedCount = 0;
       await liveblocks.mutateStorage(roomId, ({ root }) => {
-        const liveNodes = ((root.get("nodes") as CanvasNode[] | undefined) ?? []);
-        const liveEdges = ((root.get("edges") as CanvasEdge[] | undefined) ?? []);
+        const liveNodes = (root.get("nodes") as CanvasNode[] | undefined) ?? [];
+        const liveEdges = (root.get("edges") as CanvasEdge[] | undefined) ?? [];
         const result = applyActions(liveNodes, liveEdges, actions);
         root.set("nodes", result.nodes);
         root.set("edges", result.edges);
+        appliedCount = result.appliedCount;
+        skippedCount = result.skippedCount;
       });
 
-      await publishStatus("complete", "Architecture generated.");
-      metadata.set("actionsApplied", actions.length);
-      logger.info("design-agent: complete", { roomId, actionsApplied: actions.length });
+      if (appliedCount === 0 && actions.length > 0) {
+        logger.error("design-agent: every action was skipped", {
+          roomId,
+          actionsReturned: actions.length,
+        });
+      }
+
+      await publishStatus(
+        "complete",
+        skippedCount > 0
+          ? `Architecture generated — ${appliedCount} change${appliedCount === 1 ? "" : "s"} applied, ${skippedCount} skipped.`
+          : "Architecture generated.",
+      );
+      metadata.set("actionsApplied", appliedCount);
+      metadata.set("actionsSkipped", skippedCount);
+      logger.info("design-agent: complete", { roomId, appliedCount, skippedCount });
 
       await liveblocks.setPresence(roomId, {
         userId: AI_AGENT_USER_ID,
@@ -328,16 +379,16 @@ export const designAgentTask = schemaTask({
         ttl: 5,
       });
 
-      return { success: true, actionsApplied: actions.length };
+      return { success: true, actionsApplied: appliedCount, actionsSkipped: skippedCount };
     } catch (err) {
-             if (err instanceof NoObjectGeneratedError) {
-                logger.error("design-agent: schema validation failed", {
-                  roomId,
-                  text: err.text,
-                  finishReason: err.finishReason,
-                  cause: err.cause instanceof Error ? err.cause.message : String(err.cause),
-                });
-              }
+      if (err instanceof NoObjectGeneratedError) {
+        logger.error("design-agent: schema validation failed", {
+          roomId,
+          text: err.text,
+          finishReason: err.finishReason,
+          cause: err.cause instanceof Error ? err.cause.message : String(err.cause),
+        });
+      }
       logger.error("design-agent: failed", {
         roomId,
         error: err instanceof Error ? err.message : String(err),
