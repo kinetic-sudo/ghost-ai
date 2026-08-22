@@ -11,6 +11,11 @@ import { useUser } from "@clerk/nextjs";
 
 import { AI_CHAT_FEED_ID, chatMessageSchema, type ChatMessage } from "@/types/tasks";
 
+// Must match AI_AGENT_USER_ID / AI_AGENT_USER_INFO.name in trigger/design-agent.ts
+// so messages sent from either side render as the same identity.
+const AI_SENDER_ID = "ghost-ai";
+const AI_SENDER_NAME = "Ghost AI";
+
 export function useAiChatFeed() {
   const { user } = useUser();
   const { messages: rawMessages } = useFeedMessages(AI_CHAT_FEED_ID);
@@ -68,5 +73,25 @@ export function useAiChatFeed() {
     [createFeedMessage, user],
   );
 
-  return { messages, sendMessage, sendError, currentUserId: user?.id };
+  // Client-triggered AI-authored messages (e.g. "run completed" / "run
+  // failed" notices pushed from ai-sidebar.tsx after useRealtimeRun settles).
+  // Deliberately does NOT depend on the signed-in user — these should render
+  // as coming from Ghost AI, not from whoever happened to submit the prompt.
+  const sendAiMessage = useCallback(
+    (content: string) => {
+      const trimmed = content.trim();
+      if (!trimmed) return;
+      const payload = chatMessageSchema.parse({
+        senderId: AI_SENDER_ID,
+        senderName: AI_SENDER_NAME,
+        role: "assistant" as const,
+        content: trimmed,
+        timestamp: Date.now(),
+      });
+      createFeedMessage(AI_CHAT_FEED_ID, payload, { timestamp: payload.timestamp });
+    },
+    [createFeedMessage],
+  );
+
+  return { messages, sendMessage, sendAiMessage, sendError, currentUserId: user?.id };
 }
