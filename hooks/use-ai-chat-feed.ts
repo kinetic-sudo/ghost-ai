@@ -38,10 +38,14 @@ export function useAiChatFeed() {
     }
   });
 
-  // Validate every message before it's ever rendered, and reverse into
-  // chronological (oldest-first) order for a normal top-to-bottom chat read.
+  // Validate every message before it's ever rendered. Liveblocks Feeds
+  // already returns messages chronologically (oldest-first) — confirmed
+  // against Liveblocks' own docs, which use `messages[messages.length - 1]`
+  // as their documented pattern for "the latest message." A previous
+  // version .reverse()'d this array under the opposite assumption, which
+  // flipped an already-correct order into newest-first — visible as replies
+  // rendering above the message that triggered them.
   const messages: ChatMessage[] = [...(rawMessages ?? [])]
-    .reverse()
     .map((m) => chatMessageSchema.safeParse(m.data))
     .filter((r): r is { success: true; data: ChatMessage } => r.success)
     .map((r) => r.data);
