@@ -56,7 +56,7 @@ const FAILED_RUN_STATUSES = new Set([
 ]);
 
 export function AiSidebar({ open, onClose, roomId }: AiSidebarProps) {
-  const { messages, sendMessage, sendError, currentUserId } = useAiChatFeed();
+  const { messages, sendMessage, sendAiMessage, sendError, currentUserId } = useAiChatFeed();
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { message: aiStatus, isGenerating } = useAiStatusFeed();
@@ -84,22 +84,18 @@ export function AiSidebar({ open, onClose, roomId }: AiSidebarProps) {
 
     if (run.status === "COMPLETED") {
       finalizedRunRef.current = runId;
-      // NOTE: pushed via the same sendMessage() the user's own messages use,
-      // since use-ai-chat-feed.ts has no way (yet) to author a message as
-      // "ghost-ai" instead of the current user. Until that's added this will
-      // render as a message from you, not a visually distinct AI bubble.
-      sendMessage("Design updated — check the canvas for the latest changes.");
+      sendAiMessage("Design updated — check the canvas for the latest changes.");
       setRunId(null);
       setPublicToken(null);
     } else if (FAILED_RUN_STATUSES.has(run.status)) {
       finalizedRunRef.current = runId;
-      sendMessage(
+      sendAiMessage(
         `Something went wrong generating this design (${run.status.toLowerCase()}). Try again.`
       );
       setRunId(null);
       setPublicToken(null);
     }
-  }, [run, runId, sendMessage]);
+  }, [run, runId, sendAiMessage]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -152,7 +148,7 @@ export function AiSidebar({ open, onClose, roomId }: AiSidebarProps) {
       const message =
         err instanceof Error ? err.message : "Something went wrong starting the design run.";
       setRunError(message);
-      sendMessage(`⚠️ ${message}`);
+      sendAiMessage(`⚠️ ${message}`);
     } finally {
       setIsSubmitting(false);
     }
