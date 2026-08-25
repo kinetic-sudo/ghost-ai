@@ -16,6 +16,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useAiStatusFeed } from "@/hooks/use-ai-status-feed";
 import { useAiChatFeed } from "@/hooks/use-ai-chat-feed";
+import { useProjectSpecs, type ProjectSpecSummary } from "@/hooks/use-project-specs";
+import { SpecPreviewDialog } from "@/components/editor/spec-preview-dialog";
 import { useRealtimeRun } from "@trigger.dev/react-hooks";
 
 interface AiSidebarProps {
@@ -60,6 +62,10 @@ export function AiSidebar({ open, onClose, roomId }: AiSidebarProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { message: aiStatus, isGenerating } = useAiStatusFeed();
+
+  // Specs tab (29-spec-ui-integration).
+  const { specs, isLoading: specsLoading, error: specsError } = useProjectSpecs(roomId);
+  const [selectedSpec, setSelectedSpec] = useState<ProjectSpecSummary | null>(null);
 
   // Design-run tracking (this unit): submit -> runId -> publicToken -> useRealtimeRun.
   const [runId, setRunId] = useState<string | null>(null);
@@ -306,7 +312,7 @@ export function AiSidebar({ open, onClose, roomId }: AiSidebarProps) {
 
         {/* Specs Tab */}
         <TabsContent value="specs" className="flex flex-1 flex-col overflow-hidden p-5 data-[state=active]:flex">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-1 flex-col gap-4 overflow-hidden">
             <Button
               onClick={() => {}}
               disabled={disabled}
@@ -322,39 +328,82 @@ export function AiSidebar({ open, onClose, roomId }: AiSidebarProps) {
               )}
             </Button>
 
-            <div className="mt-2">
-              <h4 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-white/40">Generated Specifications</h4>
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <h4 className="mb-3 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-white/40">
+                Generated Specifications
+              </h4>
 
-              {/* Demo Spec Card */}
-              <div className="group relative flex flex-col gap-3 rounded-2xl border border-white/5 bg-[#151422] p-4 shadow-md transition-all">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1D1B36] text-[#8B5CF6]">
-                      <FileText className="h-5 w-5" />
+              <ScrollArea className="flex-1">
+                <div className="flex flex-col gap-2.5 pr-1">
+                  {specsLoading ? (
+                    <div className="flex items-center gap-2 py-6 text-xs text-white/40">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Loading specs…
                     </div>
-                    <div>
-                      <h5 className="text-sm font-semibold text-white">System Architecture Spec</h5>
-                      <p className="text-xs text-white/40">Updated 5m ago</p>
+                  ) : specsError ? (
+                    <p className="py-6 text-xs font-medium text-[#FF6166]">{specsError}</p>
+                  ) : specs.length === 0 ? (
+                    <div className="flex flex-col items-center py-8 text-center">
+                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#1D1B36] text-[#8B5CF6]">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <p className="max-w-[220px] text-xs leading-relaxed text-white/40">
+                        No specs generated yet for this project.
+                      </p>
                     </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    disabled
-                    className="h-8 w-8 cursor-not-allowed text-white/30 opacity-50"
-                    title="Download unavailable in demo mode"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
+                  ) : (
+                    specs.map((spec) => (
+                      <button
+                        key={spec.id}
+                        onClick={() => setSelectedSpec(spec)}
+                        className="group relative flex flex-col gap-3 rounded-2xl border border-white/5 bg-[#151422] p-4 text-left shadow-md transition-all hover:bg-[#1A182D]"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1D1B36] text-[#8B5CF6]">
+                              <FileText className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <h5 className="truncate text-sm font-semibold text-white">
+                                {spec.filename}
+                              </h5>
+                              <p className="text-xs text-white/40">
+                                {new Date(spec.createdAt).toLocaleString([], {
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            asChild
+                            className="h-8 w-8 shrink-0 rounded-full text-white/40 hover:bg-white/5 hover:text-white"
+                            title="Download"
+                          >
+                            <a
+                              href={`/api/projects/${roomId}/specs/${spec.id}/download`}
+                              download
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Download className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        </div>
+                      </button>
+                    ))
+                  )}
                 </div>
-                <p className="line-clamp-2 text-xs leading-relaxed text-white/60">
-                  Comprehensive specification document detailing microservice boundaries, API contracts, and event-driven data flow pipelines.
-                </p>
-              </div>
+              </ScrollArea>
             </div>
           </div>
         </TabsContent>
       </Tabs>
+
+      <SpecPreviewDialog roomId={roomId} spec={selectedSpec} onClose={() => setSelectedSpec(null)} />
     </aside>
   );
 }
