@@ -16,7 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useAiStatusFeed } from "@/hooks/use-ai-status-feed";
 import { useAiChatFeed } from "@/hooks/use-ai-chat-feed";
-import { useProjectSpecs, type ProjectSpecSummary } from "@/hooks/use-project-specs";
+import { useProjectSpecs, type ProjectSpecSummary } from "@/hooks/use-project-spec";
 import { SpecPreviewDialog } from "@/components/editor/spec-preview-dialog";
 import { useRealtimeRun } from "@trigger.dev/react-hooks";
 
