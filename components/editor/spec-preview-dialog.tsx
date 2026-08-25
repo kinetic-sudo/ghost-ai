@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import type { ProjectSpecSummary } from "@/hooks/use-project-specs";
+import type { ProjectSpecSummary } from "@/hooks/use-project-spec";
 
 interface SpecPreviewDialogProps {
   projectId: string;
