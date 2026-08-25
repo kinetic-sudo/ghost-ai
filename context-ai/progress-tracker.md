@@ -8,7 +8,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Current Goal
 
-- `26-ai-chat-functional` is substantially complete after an extensive debugging session: submit → `/api/design` (corrected path; spec's `/api/ai/design` doesn't match the actual route) → `/api/design/token` → `useRealtimeRun`, with end-to-end generation confirmed working (canvas updates, chat shows a correctly-attributed "Ghost AI" completion message). **One fix from this session (client-side `ai-status-feed` pre-creation on mount, to match `ai-chat`'s pattern) has not yet been confirmed working by the user** — verify the status strip actually progresses through all four states live before marking this fully done. Now starting `29-spec-ui-integration` (spec list/preview/download in the sidebar's Specs tab) — blocked on source files, see In Progress.
+- `26-ai-chat-functional` is substantially complete after an extensive debugging session: submit → `/api/design` (corrected path; spec's `/api/ai/design` doesn't match the actual route) → `/api/design/token` → `useRealtimeRun`, with end-to-end generation confirmed working (canvas updates, chat shows a correctly-attributed "Ghost AI" completion message). **One fix from this session (client-side `ai-status-feed` pre-creation on mount, to match `ai-chat`'s pattern) has not yet been confirmed working by the user** — verify the status strip actually progresses through all four states live before marking this fully done. `29-spec-ui-integration` investigated and put on hold — its assumed `ProjectSpec` backend doesn't exist in this codebase (see In Progress for details); do not pick this back up until that's built.
 
 ## Completed
 
@@ -54,13 +54,13 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - `24-ai-presence-spec` item 4 — live cursor `isThinking` spinner badges. Waiting on `live-cursor.tsx` source before writing the diff.
 - `26-ai-chat-functional` — verify the client-side feed pre-creation fix above against a fresh room; confirm the status strip progresses through all four states instead of freezing on the first.
-- `29-spec-ui-integration` — spec list/preview-modal/download in the sidebar's existing Specs tab. **Blocked**: no source files shared yet. Need the `ProjectSpec` Prisma model, existing spec API route(s) (list/content/download — whichever already exist), `trigger/generate-spec.ts` (to confirm `ProjectSpec`'s real shape without guessing), `ui-context.md`, and a fresh copy of `ai-sidebar.tsx` (today's session found real file-sync mix-ups more than once — don't trust an hours-old in-thread copy for this unit).
+- `29-spec-ui-integration` — **On hold.** Spec's premises don't match reality: it assumes an "existing `ProjectSpec` API" (list/content/download endpoints) and says to fetch via it, but `project.prisma`/`task-run.prisma` confirm **no `ProjectSpec` model exists anywhere in the schema** — `Project` only relates to `ProjectCollaborator` and `TaskRun`. There's also no `generate-spec.ts` in `trigger/` (only `design-agent.ts` exists) despite `26`'s summary referring to it as `design-agent.ts`'s "sibling task" — that reference was apparently aspirational/planned, not real. The Specs tab UI in `ai-sidebar.tsx` today is a static demo: "Generate Spec" is a no-op button, the one visible card is hardcoded fake content. Person chose to hold off entirely rather than scaffold the backend or stub the UI — do not restart this unit until a real `ProjectSpec` model, generation flow, and API routes exist and are confirmed.
 
 ## Next Up
 
 - Finish `24`'s live-cursor badges once `live-cursor.tsx` is provided.
 - Confirm `26`'s status-strip fix against a fresh room.
-- Finish `29-spec-ui-integration` once the blocked files above are shared.
+- `29-spec-ui-integration` stays on hold until a real `ProjectSpec` backend exists (see In Progress).
 - Verify the `useErrorListener`/`error.context.type === "CREATE_FEED_MESSAGE_ERROR"` assumption in `use-ai-chat-feed.ts` against real behavior (e.g. force a failed send) — the Liveblocks Feeds hooks reference page cut off before confirming this specific error-context shape.
 - Add a real asset at `/ghost-ai-avatar.png` — still a placeholder path with no image behind it.
 - Fix the "New Project" dialog's misleading URL preview (`/editor/<slug>`) vs. the real post-creation URL (`/editor/<cuid>`) — flagged mid-thread, not yet resolved; needs the dialog component to fix properly.
