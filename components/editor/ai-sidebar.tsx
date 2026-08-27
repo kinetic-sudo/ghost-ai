@@ -403,7 +403,7 @@ export function AiSidebar({ open, onClose, roomId }: AiSidebarProps) {
         </TabsContent>
       </Tabs>
 
-      <SpecPreviewDialog roomId={roomId} spec={selectedSpec} onClose={() => setSelectedSpec(null)} />
+      <SpecPreviewDialog projectId={roomId} spec={selectedSpec} onClose={() => setSelectedSpec(null)} />
     </aside>
   );
 }
